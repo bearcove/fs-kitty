@@ -22,19 +22,8 @@ update-bindings: build-rust
     sed -i '' '1s/^/import BridgeHeaders\n\n/' xcode/FsKittyExt/fs-kitty-swift.swift
     sed -i '' 's/^import Foundation$/import Foundation\nimport BridgeHeaders/' xcode/FsKittyExt/SwiftBridgeCore.swift
 
-# Build the Xcode project
+# Build the Xcode project (Release config - Debug stub doesn't work with ExtensionKit)
 build-xcode: build-rust xcode-gen
-    mkdir -p build
-    xcodebuild -project xcode/FsKitty.xcodeproj \
-        -scheme FsKitty \
-        -configuration Debug \
-        -allowProvisioningUpdates \
-        build \
-        SYMROOT="$(pwd)/build"
-    @echo "FsKitty.app is at build/Debug/FsKitty.app"
-
-# Build release configuration
-build-release: build-rust xcode-gen
     mkdir -p build
     xcodebuild -project xcode/FsKitty.xcodeproj \
         -scheme FsKitty \
@@ -43,6 +32,17 @@ build-release: build-rust xcode-gen
         build \
         SYMROOT="$(pwd)/build"
     @echo "FsKitty.app is at build/Release/FsKitty.app"
+
+# Build debug configuration (WARNING: Debug stub doesn't work with ExtensionKit!)
+build-debug: build-rust xcode-gen
+    mkdir -p build
+    xcodebuild -project xcode/FsKitty.xcodeproj \
+        -scheme FsKitty \
+        -configuration Debug \
+        -allowProvisioningUpdates \
+        build \
+        SYMROOT="$(pwd)/build"
+    @echo "FsKitty.app is at build/Debug/FsKitty.app (won't launch as extension!)"
 
 # Clean build artifacts
 clean:
