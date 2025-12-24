@@ -133,8 +133,5 @@ crates/
 
 ### Next Steps
 
-1. Create `fs-kitty-proto` crate with shared Vfs trait
-2. Update `fs-kitty-swift` to use rapace client + expose to Swift
-3. Update `fs-kitty-server` to use shared trait
-4. Test full chain: Swift test → fs-kitty-swift → fs-kitty-server
-5. Move to Phase 6: actual FSKit extension
+1. Test full chain: Swift test → fs-kitty-swift → fs-kitty-server
+2. Phase 6: actual FSKit extension (.appex bundle)

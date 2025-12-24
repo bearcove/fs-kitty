@@ -34,38 +34,20 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 4. **swift-bridge for FFI** - Swift calls into Rust, not the other way around
 5. **TCP first** - Start simple, SHM zero-copy can come later
 
-## De-risking Phases
+## Status
 
-We're validating each layer before building on it:
+### What Works ✅
 
-### Phase 1-2: Swift-Rust Linking (Complete)
-**Key findings:**
-- ✅ Swift can link against Rust static libraries (`crate-type = ["staticlib"]`)
-- ✅ swift-bridge codegen works - generates C headers + Swift wrappers
-- ✅ Struct passing works across the FFI boundary
-- Requires copying `SwiftBridgeCore.swift` and adding `import BridgeHeaders`
+- **Swift ↔ Rust FFI** via swift-bridge (sync and async functions, structs, enums, `Vec<T>`, `Result<T, E>`)
+- **Rapace RPC** over TCP with bidirectional calls
+- **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename
+- **Rust client/server** tested end-to-end
 
-### Phase 3: Async swift-bridge (Complete)
-**Key findings:**
-- Async IS supported with `features = ["async"]`
-- Supports Result<T, E>, Option<T>, custom structs/enums
-- **CRITICAL**: `Vec<T>` cannot be returned from async functions (Issue #344)
-- Workaround: Use opaque buffer types for read operations
-- Requires Swift 5.9+ for typed throws
+### What's Next
 
-### Phase 4: Rapace TCP (Complete)
-**Key findings:**
-- ✅ Rapace RPC works over TCP
-- ✅ Bidirectional RPC works (server can call methods on client)
-- ✅ `#[rapace::service]` generates `VfsServer` and `VfsClient` types
-- **GOTCHA**: Facet version must match rapace's (use git dependency)
-- Channel ID collision prevention: server uses odd IDs, client uses even IDs
-
-### Phase 5: Integration
-- Swift → swift-bridge → Rust rapace client → TCP → Rust VFS backend
-
-### Phase 6: FSKit Extension
-- Minimal FSKit appex that mounts a real filesystem
+1. **Test Swift → Rust → TCP chain** - rebuild headers and run `swift/FsKitty`
+2. **FSKit extension** - create `.appex` bundle implementing FSKit protocols
+3. **Mount a real filesystem** - connect FSKit to the VFS backend
 
 ## Crates
 
