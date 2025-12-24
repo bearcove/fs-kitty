@@ -2,7 +2,9 @@
 name = "fs-kitty-proto"
 version.workspace = true
 edition.workspace = true
-description = "Shared VFS protocol types for fs-kitty"
+description = "VFS protocol for fs-kitty - implement the Vfs trait to create your own backend"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 rapace.workspace = true

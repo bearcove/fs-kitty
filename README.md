@@ -2,6 +2,10 @@
 
 A Rust-first FSKit file system extension for macOS. Own every line of code.
 
+**Built for [vixen](https://github.com/bearcove/vixen)** - a hermetic Rust build system. fs-kitty enables:
+1. **Build hermeticity** - Control exactly what goes in and out of a build
+2. **On-the-fly materialization** - Provide proc-macro inputs and other requirements that aren't statically declared
+
 ## Architecture
 
 ```
@@ -43,15 +47,16 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 - **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename
 - **Rust client/server** tested end-to-end
 - **Swift → Rust → TCP chain** tested with `swift/FsKitty`
-- **FSKit extension code** implemented in `xcode/FsKittyExt/`
+- **FSKit extension** signed and working with Developer ID
+- **Real filesystem mounting** - successfully tested end-to-end with macOS FSKit
 
 ### What's Next
 
 1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete
 2. ~~**FSKit extension code**~~ ✅ Complete - see `xcode/FsKittyExt/`
 3. ~~**Create Xcode project**~~ ✅ Complete - `just build` works
-4. **Sign and test** - requires Apple Developer Program membership
-5. **Mount a real filesystem** - connect FSKit to the VFS backend
+4. ~~**Sign and test**~~ ✅ Complete - signed with Developer ID and tested
+5. ~~**Mount a real filesystem**~~ ✅ Complete - successfully mounted and tested end-to-end
 
 ## Project Structure
 
