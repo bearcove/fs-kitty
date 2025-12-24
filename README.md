@@ -38,10 +38,12 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 We're validating each layer before building on it:
 
-### Phase 1-2: Swift-Rust Linking (In Progress)
-- Can Swift link against a Rust static library?
-- Does swift-bridge codegen work?
-- Can we pass structs across the boundary?
+### Phase 1-2: Swift-Rust Linking (Complete)
+**Key findings:**
+- ✅ Swift can link against Rust static libraries (`crate-type = ["staticlib"]`)
+- ✅ swift-bridge codegen works - generates C headers + Swift wrappers
+- ✅ Struct passing works across the FFI boundary
+- Requires copying `SwiftBridgeCore.swift` and adding `import BridgeHeaders`
 
 ### Phase 3: Async swift-bridge (Complete)
 **Key findings:**
@@ -51,10 +53,13 @@ We're validating each layer before building on it:
 - Workaround: Use opaque buffer types for read operations
 - Requires Swift 5.9+ for typed throws
 
-### Phase 4: Rapace TCP (In Progress)
-- Prove rapace RPC works over TCP
-- Define minimal VFS service trait
-- Test bidirectional RPC
+### Phase 4: Rapace TCP (Complete)
+**Key findings:**
+- ✅ Rapace RPC works over TCP
+- ✅ Bidirectional RPC works (server can call methods on client)
+- ✅ `#[rapace::service]` generates `VfsServer` and `VfsClient` types
+- **GOTCHA**: Facet version must match rapace's (use git dependency)
+- Channel ID collision prevention: server uses odd IDs, client uses even IDs
 
 ### Phase 5: Integration
 - Swift → swift-bridge → Rust rapace client → TCP → Rust VFS backend
