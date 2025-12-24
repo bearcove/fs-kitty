@@ -38,35 +38,81 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 ### What Works ✅
 
-- **Swift ↔ Rust FFI** via swift-bridge (sync and async functions, structs, enums, `Vec<T>`, `Result<T, E>`)
+- **Swift ↔ Rust FFI** via swift-bridge (sync and async functions, structs, `Vec<T>`, `Result<T, E>`)
 - **Rapace RPC** over TCP with bidirectional calls
 - **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename
 - **Rust client/server** tested end-to-end
+- **Swift → Rust → TCP chain** tested with `swift/FsKitty`
+- **FSKit extension code** implemented in `xcode/FsKittyExt/`
 
 ### What's Next
 
-1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete - Swift calls Rust, Rust talks TCP to VFS server
-2. **FSKit extension** - create `.appex` bundle implementing FSKit protocols
-3. **Mount a real filesystem** - connect FSKit to the VFS backend
+1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete
+2. ~~**FSKit extension code**~~ ✅ Complete - see `xcode/FsKittyExt/`
+3. **Create Xcode project** - set up FsKitty.app + FsKittyExt.appex
+4. **Mount a real filesystem** - connect FSKit to the VFS backend
 
-## Crates
+## Project Structure
 
-| Crate | Purpose |
-|-------|---------|
-| `fs-kitty-proto` | Shared VFS protocol types |
-| `fs-kitty-swift` | Rust lib exposed to Swift via swift-bridge |
-| `fs-kitty-server` | In-memory VFS server (for testing) |
-| `fs-kitty-client` | CLI VFS client (for testing) |
+```
+fs-kitty/
+├── crates/
+│   ├── fs-kitty-proto/     # Shared VFS protocol types
+│   ├── fs-kitty-swift/     # Rust lib exposed to Swift via swift-bridge
+│   ├── fs-kitty-server/    # In-memory VFS server (for testing)
+│   └── fs-kitty-client/    # CLI VFS client (for testing)
+├── swift/FsKitty/          # SPM test harness for swift-bridge
+└── xcode/
+    ├── FsKitty/            # Host app source files
+    └── FsKittyExt/         # FSKit extension source files
+        ├── FsKittyExt.swift    # Extension entry point
+        ├── Bridge.swift        # FSUnaryFileSystem implementation
+        ├── Volume.swift        # FSVolume implementation
+        ├── Item.swift          # FSItem wrapper
+        ├── BridgeHeaders/      # C headers for swift-bridge
+        ├── SwiftBridgeCore.swift
+        └── fs-kitty-swift.swift
+```
 
 ## Building
 
-```bash
-# Build all crates
-cargo build
+### Prerequisites
 
-# Build release (needed for Swift linking)
-cargo build --release
+- macOS 15.4+ (for FSKit)
+- Xcode 16+
+- Rust toolchain
+
+### Build Rust Library
+
+```bash
+# Build release (generates headers and static library)
+cargo build --release --package fs-kitty-swift
 ```
+
+### Setting Up the Xcode Project
+
+The FSKit extension requires an Xcode project. Create one manually:
+
+1. **Create new macOS App** in Xcode:
+   - Product Name: `FsKitty`
+   - Organization: `com.bearcove`
+   - Bundle ID: `com.bearcove.fskitty`
+
+2. **Add File System Extension target**:
+   - File → New → Target → File System Extension
+   - Product Name: `FsKittyExt`
+   - Embed in: `FsKitty`
+
+3. **Replace generated files** with files from `xcode/`:
+   - Copy `xcode/FsKitty/` contents to your app target
+   - Copy `xcode/FsKittyExt/` contents to your extension target
+
+4. **Configure extension target**:
+   - Add `BridgeHeaders/` to Header Search Paths
+   - Add linker flags: `-L$(PROJECT_DIR)/../../target/release -lfs_kitty_swift`
+   - Ensure entitlements include `com.apple.developer.fskit.fsmodule`
+
+5. **Build and archive** with your signing identity
 
 ## Running
 
@@ -74,11 +120,35 @@ cargo build --release
 # Terminal 1: Start VFS server
 cargo run --package fs-kitty-server
 
-# Terminal 2: Run VFS client
+# Terminal 2: Test with CLI client
 cargo run --package fs-kitty-client
 
-# Or run Swift test (needs server running)
+# Or test Swift → Rust integration
 cd swift/FsKitty && swift run
+```
+
+### Mounting (after Xcode project is set up)
+
+```bash
+# Install the app
+cp -r /path/to/FsKitty.app /Applications/
+open -a /Applications/FsKitty.app
+
+# Enable extension in System Settings → General → Login Items & Extensions → File System Extensions
+
+# Create mount point
+sudo mkdir -p /Volumes/FsKitty
+
+# Create and attach disk image
+mkfile -n 1m /tmp/fskitty.dmg
+DEVICE=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount /tmp/fskitty.dmg)
+
+# Mount
+mount -F -t fskitty "$DEVICE" /Volumes/FsKitty
+
+# Unmount
+umount -f /Volumes/FsKitty
+hdiutil detach "$DEVICE"
 ```
 
 ## Dependencies

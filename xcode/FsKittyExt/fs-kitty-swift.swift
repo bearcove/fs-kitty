@@ -1,3 +1,5 @@
+import BridgeHeaders
+
 public func add(_ a: Int32, _ b: Int32) -> Int32 {
     __swift_bridge__$add(a, b)
 }
