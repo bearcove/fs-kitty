@@ -1,0 +1,14 @@
+[package]
+name = "fskitty-swift"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+swift-bridge.workspace = true
+tokio.workspace = true
+
+[build-dependencies]
+swift-bridge-build.workspace = true

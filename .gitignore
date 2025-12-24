@@ -1,0 +1,21 @@
+# Rust
+/target/
+Cargo.lock
+
+# Swift
+swift/*/.build/
+swift/*/.swiftpm/
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+
+# Generated (keep swift-bridge generated files for now)
+# crates/*/generated/
+
+# macOS
+.DS_Store
+*.dSYM/
+
+# IDE
+.idea/
+.vscode/

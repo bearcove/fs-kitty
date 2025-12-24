@@ -1,0 +1,15 @@
+[package]
+name = "spike-vfs-client"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "spike-vfs-client"
+path = "src/main.rs"
+
+[dependencies]
+tokio.workspace = true
+rapace = { workspace = true, features = ["stream"] }
+facet.workspace = true
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

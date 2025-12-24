@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/*",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/bearcove/fskitty"
+
+[workspace.dependencies]
+# Swift bridge
+swift-bridge = { version = "0.1", features = ["async"] }
+swift-bridge-build = "0.1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Rapace (local)
+rapace = { path = "../rapace/crates/rapace" }
+rapace-core = { path = "../rapace/crates/rapace-core" }
+
+# Serialization (must match rapace's facet version)
+facet = { git = "https://github.com/facet-rs/facet", branch = "main", features = ["camino"] }
+facet-core = { git = "https://github.com/facet-rs/facet", branch = "main" }
