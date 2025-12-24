@@ -1,13 +1,14 @@
 [package]
-name = "spike-vfs-server"
+name = "fs-kitty-client"
 version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "spike-vfs-server"
+name = "fs-kitty-client"
 path = "src/main.rs"
 
 [dependencies]
+fs-kitty-proto = { path = "../fs-kitty-proto" }
 tokio.workspace = true
 rapace = { workspace = true, features = ["stream"] }
 facet.workspace = true

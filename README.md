@@ -1,4 +1,4 @@
-# fskitty
+# fs-kitty
 
 A Rust-first FSKit file system extension for macOS. Own every line of code.
 
@@ -10,7 +10,7 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 └───────────────┬─────────────────────────────────────────────┘
                 │
 ┌───────────────▼─────────────────────────────────────────────┐
-│  fskitty-fsext.appex                                        │
+│  FsKitty.appex                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │ Swift: FSKit protocol impl (thin layer)                │ │
 │  └──────────────┬─────────────────────────────────────────┘ │
@@ -71,9 +71,10 @@ We're validating each layer before building on it:
 
 | Crate | Purpose |
 |-------|---------|
-| `fskitty-swift` | Rust lib exposed to Swift via swift-bridge |
-| `spike-vfs-server` | Spike: rapace VFS server (TCP) |
-| `spike-vfs-client` | Spike: rapace VFS client (TCP) |
+| `fs-kitty-proto` | Shared VFS protocol types |
+| `fs-kitty-swift` | Rust lib exposed to Swift via swift-bridge |
+| `fs-kitty-server` | In-memory VFS server (for testing) |
+| `fs-kitty-client` | CLI VFS client (for testing) |
 
 ## Building
 
@@ -85,14 +86,17 @@ cargo build
 cargo build --release
 ```
 
-## Running the Spikes
+## Running
 
 ```bash
 # Terminal 1: Start VFS server
-cargo run --package spike-vfs-server
+cargo run --package fs-kitty-server
 
 # Terminal 2: Run VFS client
-cargo run --package spike-vfs-client
+cargo run --package fs-kitty-client
+
+# Or run Swift test (needs server running)
+cd swift/FsKitty && swift run
 ```
 
 ## Dependencies

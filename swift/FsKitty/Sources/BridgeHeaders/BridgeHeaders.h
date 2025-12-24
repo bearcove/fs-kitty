@@ -1,16 +1,9 @@
-// Combined bridging header for swift-bridge generated code
-#ifndef BridgeHeaders_h
-#define BridgeHeaders_h
-
 #include <stdint.h>
-#include <stdbool.h>
-
-// ========================================
-// SwiftBridgeCore.h content
-// ========================================
+#include <stdbool.h> 
 typedef struct RustStr { uint8_t* const start; uintptr_t len; } RustStr;
 typedef struct __private__FfiSlice { void* const start; uintptr_t len; } __private__FfiSlice;
 void* __swift_bridge__null_pointer(void);
+
 
 typedef struct __private__OptionU8 { uint8_t val; bool is_some; } __private__OptionU8;
 typedef struct __private__OptionI8 { int8_t val; bool is_some; } __private__OptionI8;
@@ -26,7 +19,7 @@ typedef struct __private__OptionF32 { float val; bool is_some; } __private__Opti
 typedef struct __private__OptionF64 { double val; bool is_some; } __private__OptionF64;
 typedef struct __private__OptionBool { bool val; bool is_some; } __private__OptionBool;
 
-void* __swift_bridge__$Vec_u8$new(void);
+void* __swift_bridge__$Vec_u8$new();
 void __swift_bridge__$Vec_u8$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_u8$len(void* const vec);
 void __swift_bridge__$Vec_u8$push(void* const vec, uint8_t val);
@@ -35,7 +28,7 @@ __private__OptionU8 __swift_bridge__$Vec_u8$get(void* const vec, uintptr_t index
 __private__OptionU8 __swift_bridge__$Vec_u8$get_mut(void* const vec, uintptr_t index);
 uint8_t const * __swift_bridge__$Vec_u8$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_u16$new(void);
+void* __swift_bridge__$Vec_u16$new();
 void __swift_bridge__$Vec_u16$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_u16$len(void* const vec);
 void __swift_bridge__$Vec_u16$push(void* const vec, uint16_t val);
@@ -44,7 +37,7 @@ __private__OptionU16 __swift_bridge__$Vec_u16$get(void* const vec, uintptr_t ind
 __private__OptionU16 __swift_bridge__$Vec_u16$get_mut(void* const vec, uintptr_t index);
 uint16_t const * __swift_bridge__$Vec_u16$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_u32$new(void);
+void* __swift_bridge__$Vec_u32$new();
 void __swift_bridge__$Vec_u32$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_u32$len(void* const vec);
 void __swift_bridge__$Vec_u32$push(void* const vec, uint32_t val);
@@ -53,7 +46,7 @@ __private__OptionU32 __swift_bridge__$Vec_u32$get(void* const vec, uintptr_t ind
 __private__OptionU32 __swift_bridge__$Vec_u32$get_mut(void* const vec, uintptr_t index);
 uint32_t const * __swift_bridge__$Vec_u32$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_u64$new(void);
+void* __swift_bridge__$Vec_u64$new();
 void __swift_bridge__$Vec_u64$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_u64$len(void* const vec);
 void __swift_bridge__$Vec_u64$push(void* const vec, uint64_t val);
@@ -62,7 +55,7 @@ __private__OptionU64 __swift_bridge__$Vec_u64$get(void* const vec, uintptr_t ind
 __private__OptionU64 __swift_bridge__$Vec_u64$get_mut(void* const vec, uintptr_t index);
 uint64_t const * __swift_bridge__$Vec_u64$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_usize$new(void);
+void* __swift_bridge__$Vec_usize$new();
 void __swift_bridge__$Vec_usize$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_usize$len(void* const vec);
 void __swift_bridge__$Vec_usize$push(void* const vec, uintptr_t val);
@@ -71,7 +64,7 @@ __private__OptionUsize __swift_bridge__$Vec_usize$get(void* const vec, uintptr_t
 __private__OptionUsize __swift_bridge__$Vec_usize$get_mut(void* const vec, uintptr_t index);
 uintptr_t const * __swift_bridge__$Vec_usize$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_i8$new(void);
+void* __swift_bridge__$Vec_i8$new();
 void __swift_bridge__$Vec_i8$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_i8$len(void* const vec);
 void __swift_bridge__$Vec_i8$push(void* const vec, int8_t val);
@@ -80,7 +73,7 @@ __private__OptionI8 __swift_bridge__$Vec_i8$get(void* const vec, uintptr_t index
 __private__OptionI8 __swift_bridge__$Vec_i8$get_mut(void* const vec, uintptr_t index);
 int8_t const * __swift_bridge__$Vec_i8$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_i16$new(void);
+void* __swift_bridge__$Vec_i16$new();
 void __swift_bridge__$Vec_i16$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_i16$len(void* const vec);
 void __swift_bridge__$Vec_i16$push(void* const vec, int16_t val);
@@ -89,7 +82,7 @@ __private__OptionI16 __swift_bridge__$Vec_i16$get(void* const vec, uintptr_t ind
 __private__OptionI16 __swift_bridge__$Vec_i16$get_mut(void* const vec, uintptr_t index);
 int16_t const * __swift_bridge__$Vec_i16$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_i32$new(void);
+void* __swift_bridge__$Vec_i32$new();
 void __swift_bridge__$Vec_i32$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_i32$len(void* const vec);
 void __swift_bridge__$Vec_i32$push(void* const vec, int32_t val);
@@ -98,7 +91,7 @@ __private__OptionI32 __swift_bridge__$Vec_i32$get(void* const vec, uintptr_t ind
 __private__OptionI32 __swift_bridge__$Vec_i32$get_mut(void* const vec, uintptr_t index);
 int32_t const * __swift_bridge__$Vec_i32$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_i64$new(void);
+void* __swift_bridge__$Vec_i64$new();
 void __swift_bridge__$Vec_i64$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_i64$len(void* const vec);
 void __swift_bridge__$Vec_i64$push(void* const vec, int64_t val);
@@ -107,7 +100,7 @@ __private__OptionI64 __swift_bridge__$Vec_i64$get(void* const vec, uintptr_t ind
 __private__OptionI64 __swift_bridge__$Vec_i64$get_mut(void* const vec, uintptr_t index);
 int64_t const * __swift_bridge__$Vec_i64$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_isize$new(void);
+void* __swift_bridge__$Vec_isize$new();
 void __swift_bridge__$Vec_isize$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_isize$len(void* const vec);
 void __swift_bridge__$Vec_isize$push(void* const vec, intptr_t val);
@@ -116,7 +109,7 @@ __private__OptionIsize __swift_bridge__$Vec_isize$get(void* const vec, uintptr_t
 __private__OptionIsize __swift_bridge__$Vec_isize$get_mut(void* const vec, uintptr_t index);
 intptr_t const * __swift_bridge__$Vec_isize$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_bool$new(void);
+void* __swift_bridge__$Vec_bool$new();
 void __swift_bridge__$Vec_bool$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_bool$len(void* const vec);
 void __swift_bridge__$Vec_bool$push(void* const vec, bool val);
@@ -125,7 +118,7 @@ __private__OptionBool __swift_bridge__$Vec_bool$get(void* const vec, uintptr_t i
 __private__OptionBool __swift_bridge__$Vec_bool$get_mut(void* const vec, uintptr_t index);
 bool const * __swift_bridge__$Vec_bool$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_f32$new(void);
+void* __swift_bridge__$Vec_f32$new();
 void __swift_bridge__$Vec_f32$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_f32$len(void* const vec);
 void __swift_bridge__$Vec_f32$push(void* const vec, float val);
@@ -134,7 +127,7 @@ __private__OptionF32 __swift_bridge__$Vec_f32$get(void* const vec, uintptr_t ind
 __private__OptionF32 __swift_bridge__$Vec_f32$get_mut(void* const vec, uintptr_t index);
 float const * __swift_bridge__$Vec_f32$as_ptr(void* const vec);
 
-void* __swift_bridge__$Vec_f64$new(void);
+void* __swift_bridge__$Vec_f64$new();
 void __swift_bridge__$Vec_f64$_free(void* const vec);
 uintptr_t __swift_bridge__$Vec_f64$len(void* const vec);
 void __swift_bridge__$Vec_f64$push(void* const vec, double val);
@@ -143,6 +136,7 @@ __private__OptionF64 __swift_bridge__$Vec_f64$get(void* const vec, uintptr_t ind
 __private__OptionF64 __swift_bridge__$Vec_f64$get_mut(void* const vec, uintptr_t index);
 double const * __swift_bridge__$Vec_f64$as_ptr(void* const vec);
 
+#include <stdint.h>
 typedef struct RustString RustString;
 void __swift_bridge__$RustString$_free(void* self);
 
@@ -162,17 +156,32 @@ struct RustStr __swift_bridge__$RustString$as_str(void* self);
 struct RustStr __swift_bridge__$RustString$trim(void* self);
 bool __swift_bridge__$RustStr$partial_eq(struct RustStr lhs, struct RustStr rhs);
 
+
 void __swift_bridge__$call_boxed_fn_once_no_args_no_return(void* boxed_fnonce);
 void __swift_bridge__$free_boxed_fn_once_no_args_no_return(void* boxed_fnonce);
 
+
 struct __private__ResultPtrAndPtr { bool is_ok; void* ok_or_err; };
-
-// ========================================
-// fskitty-swift.h content
-// ========================================
-typedef struct __swift_bridge__$Point { double x; double y; } __swift_bridge__$Point;
-typedef struct __swift_bridge__$Option$Point { bool is_some; __swift_bridge__$Point val; } __swift_bridge__$Option$Point;
+// File automatically generated by swift-bridge.
+#include <stdint.h>
+#include <stdbool.h>
+typedef struct __swift_bridge__$ReadResult { void* data; int32_t error; } __swift_bridge__$ReadResult;
+typedef struct __swift_bridge__$Option$ReadResult { bool is_some; __swift_bridge__$ReadResult val; } __swift_bridge__$Option$ReadResult;
+typedef struct __swift_bridge__$DirEntry { void* name; uint64_t item_id; } __swift_bridge__$DirEntry;
+typedef struct __swift_bridge__$Option$DirEntry { bool is_some; __swift_bridge__$DirEntry val; } __swift_bridge__$Option$DirEntry;
+typedef struct __swift_bridge__$ReadDirResult { void* entries; int32_t error; } __swift_bridge__$ReadDirResult;
+typedef struct __swift_bridge__$Option$ReadDirResult { bool is_some; __swift_bridge__$ReadDirResult val; } __swift_bridge__$Option$ReadDirResult;
 int32_t __swift_bridge__$add(int32_t a, int32_t b);
-double __swift_bridge__$distance(struct __swift_bridge__$Point a, struct __swift_bridge__$Point b);
+void __swift_bridge__$async_add(void* callback_wrapper, void __swift_bridge__$async_add$async(void* callback_wrapper, int32_t ret), int32_t a, int32_t b);
+void __swift_bridge__$async_greet(void* callback_wrapper, void __swift_bridge__$async_greet$async(void* callback_wrapper, void* ret), void* name);
+void __swift_bridge__$async_divide(void* callback_wrapper, void __swift_bridge__$async_divide$async(void* callback_wrapper, struct __swift_bridge__$ResultI32AndString ret), int32_t a, int32_t b);
+void __swift_bridge__$async_get_bytes(void* callback_wrapper, void __swift_bridge__$async_get_bytes$async(void* callback_wrapper, void* ret), uintptr_t len);
+void __swift_bridge__$async_read(void* callback_wrapper, void __swift_bridge__$async_read$async(void* callback_wrapper, struct __swift_bridge__$ReadResult ret));
+void __swift_bridge__$async_read_dir(void* callback_wrapper, void __swift_bridge__$async_read_dir$async(void* callback_wrapper, struct __swift_bridge__$ReadDirResult ret));
+void __swift_bridge__$vfs_connect(void* callback_wrapper, void __swift_bridge__$vfs_connect$async(void* callback_wrapper, void* ret), void* addr);
+void __swift_bridge__$vfs_ping(void* callback_wrapper, void __swift_bridge__$vfs_ping$async(void* callback_wrapper, struct __private__ResultPtrAndPtr ret));
+typedef enum __swift_bridge__$ResultI32AndString$Tag {__swift_bridge__$ResultI32AndString$ResultOk, __swift_bridge__$ResultI32AndString$ResultErr} __swift_bridge__$ResultI32AndString$Tag;
+union __swift_bridge__$ResultI32AndString$Fields {int32_t ok; void* err;};
+typedef struct __swift_bridge__$ResultI32AndString{__swift_bridge__$ResultI32AndString$Tag tag; union __swift_bridge__$ResultI32AndString$Fields payload;} __swift_bridge__$ResultI32AndString;
 
-#endif /* BridgeHeaders_h */
+

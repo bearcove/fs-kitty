@@ -1,5 +1,5 @@
 [package]
-name = "fskitty-swift"
+name = "fs-kitty-swift"
 version.workspace = true
 edition.workspace = true
 
@@ -7,8 +7,11 @@ edition.workspace = true
 crate-type = ["staticlib"]
 
 [dependencies]
+fs-kitty-proto = { path = "../fs-kitty-proto" }
 swift-bridge.workspace = true
 tokio.workspace = true
+rapace = { workspace = true, features = ["stream"] }
+once_cell = "1"
 
 [build-dependencies]
 swift-bridge-build.workspace = true

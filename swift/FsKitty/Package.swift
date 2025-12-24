@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Spike1",
+    name: "FsKitty",
     platforms: [.macOS(.v14)],
     targets: [
         // C module that exposes the Rust FFI headers
@@ -13,13 +13,13 @@ let package = Package(
         ),
         // Main executable
         .executableTarget(
-            name: "Spike1",
+            name: "FsKitty",
             dependencies: ["BridgeHeaders"],
-            path: "Sources/Spike1",
+            path: "Sources/FsKitty",
             linkerSettings: [
                 .unsafeFlags([
                     "-L../../target/release",
-                    "-lfskitty_swift",
+                    "-lfs_kitty_swift",
                 ])
             ]
         ),

@@ -446,9 +446,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a3076410a55c90011c298b04d0cfa770b00fa04e1e3c97d3f6c9de105a03844"
 
 [[package]]
-name = "fskitty-swift"
+name = "fs-kitty-client"
 version = "0.1.0"
 dependencies = [
+ "facet 0.34.0 (git+https://github.com/facet-rs/facet?branch=main)",
+ "fs-kitty-proto",
+ "rapace",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "fs-kitty-proto"
+version = "0.1.0"
+dependencies = [
+ "facet 0.34.0 (git+https://github.com/facet-rs/facet?branch=main)",
+ "rapace",
+]
+
+[[package]]
+name = "fs-kitty-server"
+version = "0.1.0"
+dependencies = [
+ "facet 0.34.0 (git+https://github.com/facet-rs/facet?branch=main)",
+ "fs-kitty-proto",
+ "rapace",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "fs-kitty-swift"
+version = "0.1.0"
+dependencies = [
+ "fs-kitty-proto",
+ "once_cell",
+ "rapace",
  "swift-bridge",
  "swift-bridge-build",
  "tokio",
@@ -1083,28 +1118,6 @@ checksum = "17129e116933cf371d018bb80ae557e889637989d8638274fb25622827b03881"
 dependencies = [
  "libc",
  "windows-sys 0.60.2",
-]
-
-[[package]]
-name = "spike-vfs-client"
-version = "0.1.0"
-dependencies = [
- "facet 0.34.0 (git+https://github.com/facet-rs/facet?branch=main)",
- "rapace",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "spike-vfs-server"
-version = "0.1.0"
-dependencies = [
- "facet 0.34.0 (git+https://github.com/facet-rs/facet?branch=main)",
- "rapace",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

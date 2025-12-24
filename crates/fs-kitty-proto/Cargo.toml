@@ -1,0 +1,9 @@
+[package]
+name = "fs-kitty-proto"
+version.workspace = true
+edition.workspace = true
+description = "Shared VFS protocol types for fs-kitty"
+
+[dependencies]
+rapace.workspace = true
+facet.workspace = true
