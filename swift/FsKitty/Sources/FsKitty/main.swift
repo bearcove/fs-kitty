@@ -31,10 +31,10 @@ Task {
     print("Connecting to VFS server at 127.0.0.1:10001...")
 
     do {
-        try await vfs_connect("127.0.0.1:10001")
+        try vfs_connect("127.0.0.1:10001")
         print("Connected!")
 
-        let pong = try await vfs_ping()
+        let pong = try vfs_ping()
         print("vfs_ping() = \(pong.toString())")
         print("SUCCESS: Phase 3 complete - VFS connection works!")
     } catch {

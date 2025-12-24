@@ -45,7 +45,7 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 ### What's Next
 
-1. **Test Swift → Rust → TCP chain** - rebuild headers and run `swift/FsKitty`
+1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete - Swift calls Rust, Rust talks TCP to VFS server
 2. **FSKit extension** - create `.appex` bundle implementing FSKit protocols
 3. **Mount a real filesystem** - connect FSKit to the VFS backend
 
