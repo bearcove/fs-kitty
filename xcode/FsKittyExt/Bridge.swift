@@ -4,9 +4,10 @@ import os
 
 /// The bridge between FSKit and our Rust VFS client.
 /// Implements FSUnaryFileSystem which is the top-level FSKit protocol.
-final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations {
+final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked Sendable {
 
-    static let shared = Bridge()
+    // FSKit manages concurrency - we're safe to use a singleton here
+    nonisolated(unsafe) static let shared = Bridge()
 
     private let log = Logger(subsystem: "FsKittyExt", category: "Bridge")
 

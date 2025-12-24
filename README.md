@@ -49,8 +49,9 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete
 2. ~~**FSKit extension code**~~ ✅ Complete - see `xcode/FsKittyExt/`
-3. **Create Xcode project** - set up FsKitty.app + FsKittyExt.appex
-4. **Mount a real filesystem** - connect FSKit to the VFS backend
+3. ~~**Create Xcode project**~~ ✅ Complete - `just build` works
+4. **Sign and test** - requires Apple Developer Program membership
+5. **Mount a real filesystem** - connect FSKit to the VFS backend
 
 ## Project Structure
 
@@ -81,74 +82,160 @@ fs-kitty/
 - macOS 15.4+ (for FSKit)
 - Xcode 16+
 - Rust toolchain
+- [just](https://github.com/casey/just) command runner
+- **Apple Developer Program membership** ($99/year) - required for FSKit entitlements
 
-### Build Rust Library
+### Quick Build
 
 ```bash
-# Build release (generates headers and static library)
-cargo build --release --package fs-kitty-swift
+# Build everything (Rust + Xcode), output to build/
+just build
+
+# Or step by step:
+just build-rust    # Build Rust library
+just build-xcode   # Build Xcode project
 ```
 
-### Setting Up the Xcode Project
+### Code Signing (Required for FSKit)
 
-The FSKit extension requires an Xcode project. Create one manually:
+FSKit extensions **must be signed** with an Apple Developer certificate. Unsigned extensions won't appear in System Settings.
 
-1. **Create new macOS App** in Xcode:
-   - Product Name: `FsKitty`
-   - Organization: `com.bearcove`
-   - Bundle ID: `com.bearcove.fskitty`
+#### 1. Join Apple Developer Program
 
-2. **Add File System Extension target**:
-   - File → New → Target → File System Extension
-   - Product Name: `FsKittyExt`
-   - Embed in: `FsKitty`
+Sign up at [developer.apple.com](https://developer.apple.com/programs/) ($99/year).
 
-3. **Replace generated files** with files from `xcode/`:
-   - Copy `xcode/FsKitty/` contents to your app target
-   - Copy `xcode/FsKittyExt/` contents to your extension target
+#### 2. Create Certificates
 
-4. **Configure extension target**:
-   - Add `BridgeHeaders/` to Header Search Paths
-   - Add linker flags: `-L$(PROJECT_DIR)/../../target/release -lfs_kitty_swift`
-   - Ensure entitlements include `com.apple.developer.fskit.fsmodule`
+In Xcode → Settings → Accounts → Manage Certificates:
+- Create a **Developer ID Application** certificate (for distribution)
+- Or use **Apple Development** certificate (for local testing)
 
-5. **Build and archive** with your signing identity
+#### 3. Create App IDs (in Apple Developer Portal)
+
+Go to [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list):
+
+1. Create App ID for host app:
+   - Identifier: `me.amos.fs-kitty`
+   - Capabilities: (none special needed)
+
+2. Create App ID for extension:
+   - Identifier: `me.amos.fs-kitty.ext`
+   - Capabilities: Enable **System Extension** (includes FSKit)
+
+#### 4. Create Provisioning Profiles
+
+For each App ID, create a provisioning profile:
+- Type: **macOS App Development** (testing) or **Developer ID** (distribution)
+- Download and double-click to install
+
+#### 5. Configure Xcode Signing
+
+Open `xcode/FsKitty.xcodeproj` in Xcode:
+
+**For FsKitty target:**
+- Signing & Capabilities → Team: Select your team
+- Signing Certificate: Developer ID Application (or Apple Development)
+
+**For FsKittyExt target:**
+- Signing & Capabilities → Team: Select your team
+- Signing Certificate: Developer ID Application (or Apple Development)
+- Verify entitlement `com.apple.developer.fskit.fsmodule` is present
+
+#### 6. Build Signed App
+
+```bash
+# From command line (uses Xcode's configured signing)
+just build-xcode
+
+# Or in Xcode: Product → Build
+```
+
+#### Troubleshooting Signing
+
+```bash
+# Check if app is signed
+codesign -dv --verbose=4 build/Debug/FsKitty.app
+
+# Check extension signing
+codesign -dv --verbose=4 build/Debug/FsKitty.app/Contents/PlugIns/FsKittyExt.appex
+
+# Verify entitlements
+codesign -d --entitlements :- build/Debug/FsKitty.app/Contents/PlugIns/FsKittyExt.appex
+```
+
+### Manual Xcode Setup (if needed)
+
+The project uses `xcodegen` to generate the Xcode project from `xcode/project.yml`:
+
+```bash
+# Regenerate project after changing project.yml
+just xcode-gen
+```
 
 ## Running
 
+### Testing Without FSKit
+
 ```bash
 # Terminal 1: Start VFS server
-cargo run --package fs-kitty-server
+just server
 
 # Terminal 2: Test with CLI client
 cargo run --package fs-kitty-client
 
-# Or test Swift → Rust integration
-cd swift/FsKitty && swift run
+# Or test Swift → Rust → TCP integration
+just test-swift
 ```
 
-### Mounting (after Xcode project is set up)
+### Testing FSKit Extension (requires signing)
+
+After signing the app (see Code Signing section above):
 
 ```bash
-# Install the app
-cp -r /path/to/FsKitty.app /Applications/
-open -a /Applications/FsKitty.app
+# 1. Install the app
+cp -r build/Debug/FsKitty.app /Applications/
+open /Applications/FsKitty.app
 
-# Enable extension in System Settings → General → Login Items & Extensions → File System Extensions
+# 2. Enable extension:
+#    System Settings → General → Login Items & Extensions → File System Extensions
+#    Toggle ON "fskitty"
 
-# Create mount point
+# 3. Start VFS server (keep running)
+just server
+
+# 4. Create mount point
 sudo mkdir -p /Volumes/FsKitty
 
-# Create and attach disk image
+# 5. Create and attach disk image (FSKit needs a block device)
 mkfile -n 1m /tmp/fskitty.dmg
 DEVICE=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount /tmp/fskitty.dmg)
+echo "Attached device: $DEVICE"
 
-# Mount
-mount -F -t fskitty "$DEVICE" /Volumes/FsKitty
+# 6. Mount
+mount -t fskitty "$DEVICE" /Volumes/FsKitty
 
-# Unmount
-umount -f /Volumes/FsKitty
+# 7. Use it!
+ls /Volumes/FsKitty
+echo "hello" > /Volumes/FsKitty/test.txt
+cat /Volumes/FsKitty/test.txt
+
+# 8. Unmount when done
+umount /Volumes/FsKitty
 hdiutil detach "$DEVICE"
+```
+
+### Watching Logs
+
+```bash
+# Stream extension logs in real-time
+just logs
+```
+
+### Check Extension Status
+
+```bash
+# See if extension is registered
+just check-extension
 ```
 
 ## Dependencies

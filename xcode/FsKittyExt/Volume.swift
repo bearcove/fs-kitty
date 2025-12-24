@@ -300,20 +300,24 @@ extension Volume: FSVolume.Operations {
             throw fs_errorForPOSIXError(result.error)
         }
 
+        // Iterate using parallel arrays (swift-bridge doesn't support Vec<Struct> yet)
+        let count = result.names.len()
         var nextCookie: UInt64 = 1
-        for i in 0..<result.entries.len() {
-            let entry = result.entries.get(index: i)!
-            let nameStr = entry.name.toString()
+        var i: UInt = 0
+        while i < count {
+            let nameStr = result.names.get(index: i)!.as_str().toString()
+            let itemId = result.item_ids.get(index: i)!
+            let itemType = result.item_types.get(index: i)!
 
             let entryAttrs = FSItem.Attributes.fromVfs(
-                itemId: entry.item_id,
-                itemType: entry.item_type,
+                itemId: itemId,
+                itemType: itemType,
                 size: 0,  // Size not included in DirEntry
                 modifiedTime: 0,
                 createdTime: 0
             )
 
-            let entryItem = Item(itemId: entry.item_id, name: nameStr, attributes: entryAttrs)
+            let entryItem = Item(itemId: itemId, name: nameStr, attributes: entryAttrs)
             cacheItem(entryItem)
 
             let shouldContinue = packer.packEntry(
@@ -328,6 +332,7 @@ extension Volume: FSVolume.Operations {
                 break
             }
             nextCookie += 1
+            i += 1
         }
 
         return FSDirectoryVerifier(result.next_cursor)

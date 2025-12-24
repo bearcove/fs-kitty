@@ -18,9 +18,9 @@ swift-bridge-build = "0.1"
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
-# Rapace (local)
-rapace = { path = "../rapace/crates/rapace" }
-rapace-core = { path = "../rapace/crates/rapace-core" }
+# Rapace (git)
+rapace = { git = "https://github.com/bearcove/rapace" }
+rapace-core = { git = "https://github.com/bearcove/rapace" }
 
 # Serialization (must match rapace's facet version)
 facet = { git = "https://github.com/facet-rs/facet", branch = "main", features = ["camino"] }

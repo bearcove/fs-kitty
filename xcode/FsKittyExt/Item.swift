@@ -44,13 +44,13 @@ extension FSItem.Attributes {
         // Set type
         switch itemType {
         case 0: // File
-            attrs.type = .regular
+            attrs.type = .file
         case 1: // Directory
             attrs.type = .directory
         case 2: // Symlink
-            attrs.type = .symbolicLink
+            attrs.type = .symlink
         default:
-            attrs.type = .regular
+            attrs.type = .file
         }
 
         // Set size

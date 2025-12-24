@@ -2,6 +2,9 @@
 /target/
 Cargo.lock
 
+# Build output
+/build/
+
 # Swift
 swift/*/.build/
 swift/*/.swiftpm/

@@ -172,67 +172,30 @@ extension __swift_bridge__$Option$FfiItemAttributes {
         }
     }
 }
-public struct FfiDirEntry {
-    public var name: RustString
-    public var item_id: UInt64
-    public var item_type: UInt8
-
-    public init(name: RustString,item_id: UInt64,item_type: UInt8) {
-        self.name = name
-        self.item_id = item_id
-        self.item_type = item_type
-    }
-
-    @inline(__always)
-    func intoFfiRepr() -> __swift_bridge__$FfiDirEntry {
-        { let val = self; return __swift_bridge__$FfiDirEntry(name: { let rustString = val.name.intoRustString(); rustString.isOwned = false; return rustString.ptr }(), item_id: val.item_id, item_type: val.item_type); }()
-    }
-}
-extension __swift_bridge__$FfiDirEntry {
-    @inline(__always)
-    func intoSwiftRepr() -> FfiDirEntry {
-        { let val = self; return FfiDirEntry(name: RustString(ptr: val.name), item_id: val.item_id, item_type: val.item_type); }()
-    }
-}
-extension __swift_bridge__$Option$FfiDirEntry {
-    @inline(__always)
-    func intoSwiftRepr() -> Optional<FfiDirEntry> {
-        if self.is_some {
-            return self.val.intoSwiftRepr()
-        } else {
-            return nil
-        }
-    }
-
-    @inline(__always)
-    static func fromSwiftRepr(_ val: Optional<FfiDirEntry>) -> __swift_bridge__$Option$FfiDirEntry {
-        if let v = val {
-            return __swift_bridge__$Option$FfiDirEntry(is_some: true, val: v.intoFfiRepr())
-        } else {
-            return __swift_bridge__$Option$FfiDirEntry(is_some: false, val: __swift_bridge__$FfiDirEntry())
-        }
-    }
-}
 public struct FfiReadDirResult {
-    public var entries: RustVec<FfiDirEntry>
+    public var names: RustVec<RustString>
+    public var item_ids: RustVec<UInt64>
+    public var item_types: RustVec<UInt8>
     public var next_cursor: UInt64
     public var error: Int32
 
-    public init(entries: RustVec<FfiDirEntry>,next_cursor: UInt64,error: Int32) {
-        self.entries = entries
+    public init(names: RustVec<RustString>,item_ids: RustVec<UInt64>,item_types: RustVec<UInt8>,next_cursor: UInt64,error: Int32) {
+        self.names = names
+        self.item_ids = item_ids
+        self.item_types = item_types
         self.next_cursor = next_cursor
         self.error = error
     }
 
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$FfiReadDirResult {
-        { let val = self; return __swift_bridge__$FfiReadDirResult(entries: { let val = val.entries; val.isOwned = false; return val.ptr }(), next_cursor: val.next_cursor, error: val.error); }()
+        { let val = self; return __swift_bridge__$FfiReadDirResult(names: { let val = val.names; val.isOwned = false; return val.ptr }(), item_ids: { let val = val.item_ids; val.isOwned = false; return val.ptr }(), item_types: { let val = val.item_types; val.isOwned = false; return val.ptr }(), next_cursor: val.next_cursor, error: val.error); }()
     }
 }
 extension __swift_bridge__$FfiReadDirResult {
     @inline(__always)
     func intoSwiftRepr() -> FfiReadDirResult {
-        { let val = self; return FfiReadDirResult(entries: RustVec(ptr: val.entries), next_cursor: val.next_cursor, error: val.error); }()
+        { let val = self; return FfiReadDirResult(names: RustVec(ptr: val.names), item_ids: RustVec(ptr: val.item_ids), item_types: RustVec(ptr: val.item_types), next_cursor: val.next_cursor, error: val.error); }()
     }
 }
 extension __swift_bridge__$Option$FfiReadDirResult {

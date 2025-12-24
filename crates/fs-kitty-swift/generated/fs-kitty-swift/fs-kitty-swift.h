@@ -5,9 +5,7 @@ typedef struct __swift_bridge__$FfiLookupResult { uint64_t item_id; uint8_t item
 typedef struct __swift_bridge__$Option$FfiLookupResult { bool is_some; __swift_bridge__$FfiLookupResult val; } __swift_bridge__$Option$FfiLookupResult;
 typedef struct __swift_bridge__$FfiItemAttributes { uint64_t item_id; uint8_t item_type; uint64_t size; uint64_t modified_time; uint64_t created_time; int32_t error; } __swift_bridge__$FfiItemAttributes;
 typedef struct __swift_bridge__$Option$FfiItemAttributes { bool is_some; __swift_bridge__$FfiItemAttributes val; } __swift_bridge__$Option$FfiItemAttributes;
-typedef struct __swift_bridge__$FfiDirEntry { void* name; uint64_t item_id; uint8_t item_type; } __swift_bridge__$FfiDirEntry;
-typedef struct __swift_bridge__$Option$FfiDirEntry { bool is_some; __swift_bridge__$FfiDirEntry val; } __swift_bridge__$Option$FfiDirEntry;
-typedef struct __swift_bridge__$FfiReadDirResult { void* entries; uint64_t next_cursor; int32_t error; } __swift_bridge__$FfiReadDirResult;
+typedef struct __swift_bridge__$FfiReadDirResult { void* names; void* item_ids; void* item_types; uint64_t next_cursor; int32_t error; } __swift_bridge__$FfiReadDirResult;
 typedef struct __swift_bridge__$Option$FfiReadDirResult { bool is_some; __swift_bridge__$FfiReadDirResult val; } __swift_bridge__$Option$FfiReadDirResult;
 typedef struct __swift_bridge__$FfiReadResult { void* data; int32_t error; } __swift_bridge__$FfiReadResult;
 typedef struct __swift_bridge__$Option$FfiReadResult { bool is_some; __swift_bridge__$FfiReadResult val; } __swift_bridge__$Option$FfiReadResult;

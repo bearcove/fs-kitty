@@ -46,18 +46,13 @@ mod ffi {
         error: i32,
     }
 
-    // Directory entry
-    #[swift_bridge(swift_repr = "struct")]
-    struct FfiDirEntry {
-        name: String,
-        item_id: u64,
-        item_type: u8,
-    }
-
-    // Read directory result
+    // Read directory result - using parallel arrays since swift-bridge
+    // doesn't yet support Vec<TransparentStruct> (see issue #305)
     #[swift_bridge(swift_repr = "struct")]
     struct FfiReadDirResult {
-        entries: Vec<FfiDirEntry>,
+        names: Vec<String>,
+        item_ids: Vec<u64>,
+        item_types: Vec<u8>,
         next_cursor: u64,
         error: i32,
     }
@@ -215,18 +210,21 @@ fn vfs_read_dir(item_id: u64, cursor: u64) -> Result<FfiReadDirResult, String> {
         .block_on(state.client.read_dir(item_id, cursor))
         .map_err(|e| e.to_string())?;
 
-    let entries: Vec<FfiDirEntry> = result
-        .entries
-        .into_iter()
-        .map(|e| FfiDirEntry {
-            name: e.name,
-            item_id: e.item_id,
-            item_type: item_type_to_u8(e.item_type),
-        })
-        .collect();
+    // Build parallel arrays (swift-bridge doesn't support Vec<Struct> yet)
+    let mut names = Vec::with_capacity(result.entries.len());
+    let mut item_ids = Vec::with_capacity(result.entries.len());
+    let mut item_types = Vec::with_capacity(result.entries.len());
+
+    for entry in result.entries {
+        names.push(entry.name);
+        item_ids.push(entry.item_id);
+        item_types.push(item_type_to_u8(entry.item_type));
+    }
 
     Ok(FfiReadDirResult {
-        entries,
+        names,
+        item_ids,
+        item_types,
         next_cursor: result.next_cursor,
         error: result.error,
     })
