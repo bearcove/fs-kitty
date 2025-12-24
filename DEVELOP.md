@@ -65,16 +65,18 @@ pluginkit -e use -i me.amos.fs-kitty.ext
 pluginkit -e use -i me.amos.fs-kitty.ext -p com.apple.fskit.fsmodule
 ```
 
-### 3. Restart FSKit Daemons
+### 3. Restart FSKit Daemons ⭐ **MOST RELIABLE FIX**
 
-FSKit daemons (`fskitd` and `fskit_agent`) can get stuck with stale state:
+FSKit daemons (`fskitd` and `fskit_agent`) can get stuck with stale state. Killing them clears the state and they auto-restart:
 
 ```bash
 sudo killall fskitd fskit_agent
-# They will auto-restart
+# They will auto-restart automatically
 ```
 
-Then try mounting again.
+Then try mounting again. **Once this works, unmount/remount cycles work reliably without needing to kill daemons again.**
+
+This is the most reliable workaround - start your development session by killing the daemons once, then everything works smoothly.
 
 ### 4. Force Detach and Reattach Disk
 

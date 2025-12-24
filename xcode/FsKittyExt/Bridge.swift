@@ -109,15 +109,18 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         do {
             try vfs_connect(serverAddress)
             log.error("🔗 connectToVfs: SUCCESS - connected to VFS server")
-        } catch {
-            let errorStr = "\(error)"
-            log.error("🔗 connectToVfs: got error: \(errorStr, privacy: .public)")
+        } catch let error as RustString {
+            let errorMsg = error.toString()
+            log.error("🔗 connectToVfs: got error: \(errorMsg, privacy: .public)")
             // Already connected is fine
-            if errorStr.contains("Already connected") {
+            if errorMsg.contains("Already connected") {
                 log.error("🔗 connectToVfs: already connected, that's OK")
                 return
             }
             log.error("🔗 connectToVfs: throwing error")
+            throw NSError(domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        } catch {
+            log.error("🔗 connectToVfs: unexpected error type: \(String(describing: error), privacy: .public)")
             throw error
         }
     }

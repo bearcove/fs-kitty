@@ -72,4 +72,4 @@ check-extension:
 
 # Stream extension logs (includes FSKit system logs)
 logs:
-    log stream --info --debug --style syslog --predicate 'subsystem == "com.apple.FSKit" OR subsystem == "FsKittyExt" OR composedMessage CONTAINS "fskitty" OR composedMessage CONTAINS "FsKittyExt"'
+    log stream --info --debug --style syslog --predicate 'subsystem == "com.apple.FSKit" OR subsystem == "me.amos.fs-kitty.ext" OR composedMessage CONTAINS "fskitty" OR composedMessage CONTAINS "FsKittyExt"'
