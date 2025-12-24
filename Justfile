@@ -70,6 +70,6 @@ test:
 check-extension:
     pluginkit -m -vv -p com.apple.fskit.fsmodule | grep -i fskitty || echo "Extension not registered"
 
-# Stream extension logs
+# Stream extension logs (includes FSKit system logs)
 logs:
-    log stream --info --debug --style syslog --predicate 'subsystem == "FsKittyExt"'
+    log stream --info --debug --style syslog --predicate 'subsystem == "com.apple.FSKit" OR subsystem == "FsKittyExt" OR composedMessage CONTAINS "fskitty" OR composedMessage CONTAINS "FsKittyExt"'

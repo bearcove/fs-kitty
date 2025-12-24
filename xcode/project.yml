@@ -48,6 +48,8 @@ targets:
     entitlements:
       path: FsKittyExt/FsKittyExt.entitlements
       properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
         com.apple.developer.fskit.fsmodule: true
     settings:
       base:
