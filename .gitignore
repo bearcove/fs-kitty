@@ -22,3 +22,5 @@ DerivedData/
 # IDE
 .idea/
 .vscode/
+
+.handoffs

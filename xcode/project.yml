@@ -37,7 +37,7 @@ targets:
         codeSign: true
 
   FsKittyExt:
-    type: app-extension
+    type: extensionkit-extension
     platform: macOS
     sources:
       - path: FsKittyExt

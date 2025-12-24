@@ -2,10 +2,18 @@ import FSKit
 import Foundation
 import os
 
+private let bootLog = Logger(subsystem: "me.amos.fs-kitty.ext", category: "Boot")
+
 @main
 struct FsKittyExt: UnaryFileSystemExtension {
+
+    init() {
+        bootLog.error("🚀 FsKittyExt init() called - EXTENSION IS RUNNING")
+    }
+
     var fileSystem: FSUnaryFileSystem & FSUnaryFileSystemOperations {
-        Bridge.shared
+        bootLog.error("🔌 fileSystem property accessed")
+        return Bridge.shared
     }
 }
 
