@@ -84,7 +84,7 @@ fs-kitty/
 
 ### Prerequisites
 
-- macOS 15.4+ (for FSKit)
+- macOS 26+ (Tahoe) for URL-based mounting, or macOS 15.4+ with block device workaround
 - Xcode 16+
 - Rust toolchain
 - [just](https://github.com/casey/just) command runner
@@ -211,23 +211,19 @@ just server
 # 4. Create mount point
 sudo mkdir -p /Volumes/FsKitty
 
-# 5. Create and attach disk image (FSKit needs a block device)
-mkfile -n 1m /tmp/fskitty.dmg
-DEVICE=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount /tmp/fskitty.dmg)
-echo "Attached device: $DEVICE"
+# 5. Mount using fskitty:// URL
+mount -t fskitty fskitty://localhost:10001 /Volumes/FsKitty
 
-# 6. Mount
-mount -t fskitty "$DEVICE" /Volumes/FsKitty
-
-# 7. Use it!
+# 6. Use it!
 ls /Volumes/FsKitty
 echo "hello" > /Volumes/FsKitty/test.txt
 cat /Volumes/FsKitty/test.txt
 
-# 8. Unmount when done
+# 7. Unmount when done
 umount /Volumes/FsKitty
-hdiutil detach "$DEVICE"
 ```
+
+The URL format is `fskitty://host:port` (port defaults to 10001 if omitted).
 
 ### Watching Logs
 

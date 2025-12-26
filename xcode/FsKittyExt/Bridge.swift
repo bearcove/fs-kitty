@@ -11,22 +11,10 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
 
     private let log = Logger(subsystem: "me.amos.fs-kitty.ext", category: "Bridge")
 
-    /// Server address from Info.plist Configuration
-    private var serverAddress: String = "127.0.0.1:10001"
-
     private override init() {
         log.error("🌉 Bridge init() START")
         super.init()
-        log.error("🌉 Bridge super.init() done")
-        // Read server address from Info.plist if configured
-        if let config = Bundle.main.infoDictionary?["Configuration"] as? [String: Any],
-           let addr = config["serverAddress"] as? String {
-            serverAddress = addr
-            log.error("🌉 Read serverAddress from plist: \(addr, privacy: .public)")
-        } else {
-            log.error("🌉 No Configuration in plist, using default: \(self.serverAddress, privacy: .public)")
-        }
-        log.error("🌉 Bridge initialized, server: \(self.serverAddress, privacy: .public)")
+        log.error("🌉 Bridge initialized (server address comes from mount URL)")
     }
 
     /// Called by FSKit to check if we can handle this resource
@@ -36,10 +24,17 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
     ) {
         log.error("📋 probeResource START - resource: \(String(describing: resource), privacy: .public)")
 
+        // Extract server address from URL resource
+        guard let address = extractServerAddress(from: resource) else {
+            log.error("📋 probeResource: not a valid fskitty:// URL resource")
+            replyHandler(nil, nil)
+            return
+        }
+
         // Connect to the Rust VFS server
         do {
-            log.error("📋 probeResource: about to connect to VFS")
-            try connectToVfs()
+            log.error("📋 probeResource: about to connect to VFS at \(address, privacy: .public)")
+            try connectToVfs(address: address)
             log.error("📋 probeResource: connected to VFS")
 
             // For now, return a basic usable result
@@ -66,9 +61,16 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
     ) {
         log.error("📦 loadResource START - resource: \(String(describing: resource), privacy: .public)")
 
+        // Extract server address from URL resource
+        guard let address = extractServerAddress(from: resource) else {
+            log.error("📦 loadResource: not a valid fskitty:// URL resource")
+            replyHandler(nil, fs_errorForPOSIXError(POSIXError.EINVAL.rawValue))
+            return
+        }
+
         do {
-            log.error("📦 loadResource: about to connect to VFS")
-            try connectToVfs()
+            log.error("📦 loadResource: about to connect to VFS at \(address, privacy: .public)")
+            try connectToVfs(address: address)
             log.error("📦 loadResource: connected to VFS")
 
             // Create our volume which will handle all FS operations
@@ -102,12 +104,41 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         log.error("✅ didFinishLoading called")
     }
 
+    // MARK: - URL Resource Handling
+
+    /// Extract server address from FSGenericURLResource
+    /// Expected URL format: fskitty://host:port or fskitty://host (defaults to port 10001)
+    private func extractServerAddress(from resource: FSResource) -> String? {
+        guard let urlResource = resource as? FSGenericURLResource else {
+            log.error("🔗 extractServerAddress: resource is not FSGenericURLResource")
+            return nil
+        }
+
+        let url = urlResource.url
+        log.error("🔗 extractServerAddress: URL = \(url.absoluteString, privacy: .public)")
+
+        guard url.scheme == "fskitty" else {
+            log.error("🔗 extractServerAddress: wrong scheme '\(url.scheme ?? "nil", privacy: .public)'")
+            return nil
+        }
+
+        guard let host = url.host else {
+            log.error("🔗 extractServerAddress: no host in URL")
+            return nil
+        }
+
+        let port = url.port ?? 10001
+        let address = "\(host):\(port)"
+        log.error("🔗 extractServerAddress: resolved to \(address, privacy: .public)")
+        return address
+    }
+
     // MARK: - VFS Connection
 
-    private func connectToVfs() throws {
-        log.error("🔗 connectToVfs: attempting to connect to \(self.serverAddress, privacy: .public)")
+    private func connectToVfs(address: String) throws {
+        log.error("🔗 connectToVfs: attempting to connect to \(address, privacy: .public)")
         do {
-            try vfs_connect(serverAddress)
+            try vfs_connect(address)
             log.error("🔗 connectToVfs: SUCCESS - connected to VFS server")
         } catch let error as RustString {
             let errorMsg = error.toString()

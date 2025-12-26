@@ -88,6 +88,8 @@ pub struct ItemAttributes {
     pub modified_time: u64,
     /// Unix timestamp (seconds since epoch)
     pub created_time: u64,
+    /// Unix file permissions (e.g., 0o755 for executable, 0o644 for regular file)
+    pub mode: u32,
 }
 
 /// Type of filesystem item
@@ -165,6 +167,15 @@ pub struct VfsResult {
     pub error: i32,
 }
 
+/// Parameters for setting attributes
+#[derive(Debug, Clone, facet::Facet)]
+pub struct SetAttributesParams {
+    /// New file mode/permissions (None = don't change)
+    pub mode: Option<u32>,
+    /// New modified time (None = don't change)
+    pub modified_time: Option<u64>,
+}
+
 /// The VFS service trait - defines the RPC interface between client and server.
 #[allow(async_fn_in_trait)]
 #[rapace::service]
@@ -194,6 +205,9 @@ pub trait Vfs {
     /// Rename/move an item.
     async fn rename(&self, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult;
 
+    /// Set attributes (permissions, times, etc.) on an item.
+    async fn set_attributes(&self, item_id: ItemId, params: SetAttributesParams) -> VfsResult;
+
     /// Ping for connectivity check.
     async fn ping(&self) -> String;
 }
@@ -220,4 +234,18 @@ pub mod errno {
     pub const ENOSPC: i32 = 28;
     /// Directory not empty
     pub const ENOTEMPTY: i32 = 66;
+}
+
+/// Common Unix file mode constants
+pub mod mode {
+    /// Regular file, read-write for owner, read-only for others (rw-r--r--)
+    pub const FILE_REGULAR: u32 = 0o644;
+    /// Executable file (rwxr-xr-x)
+    pub const FILE_EXECUTABLE: u32 = 0o755;
+    /// Directory (rwxr-xr-x) - directories need 'x' bit to be traversable
+    pub const DIRECTORY: u32 = 0o755;
+    /// Private file, owner only (rw-------)
+    pub const FILE_PRIVATE: u32 = 0o600;
+    /// Private executable, owner only (rwx------)
+    pub const FILE_PRIVATE_EXECUTABLE: u32 = 0o700;
 }
