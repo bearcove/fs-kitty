@@ -125,6 +125,126 @@ All operations use errno-style error codes (`errno::ENOENT`, `errno::EACCES`, et
 
 Items are identified by unique 64-bit IDs. **Item ID 1 is reserved for the root directory**.
 
+## Common Use Cases
+
+### Intercepting Writes
+
+To control what gets written during a build (for hermeticity), implement custom logic in the `write` method:
+
+```rust
+use fs_kitty_proto::*;
+
+impl Vfs for MyVfs {
+    async fn write(&self, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
+        // Get the file path for logging/policy decisions
+        let path = self.get_path(item_id); // your helper method
+
+        // Policy: block writes to certain paths
+        if path.starts_with("/read-only/") {
+            return WriteResult {
+                bytes_written: 0,
+                error: errno::EACCES, // Permission denied
+            };
+        }
+
+        // Log all writes for build reproducibility
+        tracing::info!("write: {} ({} bytes at offset {})", path, data.len(), offset);
+
+        // Validate write size limits
+        if data.len() > 100_000_000 {
+            return WriteResult {
+                bytes_written: 0,
+                error: errno::ENOSPC, // No space left on device
+            };
+        }
+
+        // Actually perform the write
+        self.do_write(item_id, offset, data).await
+    }
+
+    // ... other methods
+}
+```
+
+This gives you full control over:
+- **Which files can be written** (e.g., block writes outside the build output directory)
+- **Write auditing** (log every write for reproducibility analysis)
+- **Write validation** (enforce size limits, content policies, etc.)
+- **On-the-fly materialization** (materialize files from cache/network when first written)
+
+### Exposing Executable Files
+
+The protocol supports Unix file permissions through the `mode` field in `ItemAttributes`.
+
+The `ItemAttributes` struct includes:
+- `item_id: ItemId` (u64)
+- `item_type: ItemType` (enum: File, Directory, Symlink)
+- `size: u64`
+- `modified_time: u64` (Unix timestamp)
+- `created_time: u64` (Unix timestamp)
+- `mode: u32` - Unix permissions (e.g., 0o755 for executable, 0o644 for regular file)
+
+**Setting file permissions** in your VFS implementation:
+
+```rust
+use fs_kitty_proto::*;
+
+impl Vfs for MyVfs {
+    async fn get_attributes(&self, item_id: ItemId) -> GetAttributesResult {
+        let item = self.get_item(item_id);
+
+        // Use the provided mode constants
+        let file_mode = if item.is_executable {
+            mode::FILE_EXECUTABLE  // 0o755 rwxr-xr-x
+        } else if item.item_type == ItemType::Directory {
+            mode::DIRECTORY  // 0o755 directories need 'x' to traverse
+        } else {
+            mode::FILE_REGULAR  // 0o644 rw-r--r--
+        };
+
+        GetAttributesResult {
+            attrs: ItemAttributes {
+                item_id: item.id,
+                item_type: item.item_type,
+                size: item.size,
+                modified_time: item.modified_time,
+                created_time: item.created_time,
+                mode: file_mode,
+            },
+            error: errno::OK,
+        }
+    }
+}
+```
+
+**Available mode constants:**
+- `mode::FILE_REGULAR` (0o644) - Regular file, read-write for owner, read-only for others
+- `mode::FILE_EXECUTABLE` (0o755) - Executable file
+- `mode::DIRECTORY` (0o755) - Directory (needs 'x' bit to be traversable)
+- `mode::FILE_PRIVATE` (0o600) - Private file, owner only
+- `mode::FILE_PRIVATE_EXECUTABLE` (0o700) - Private executable, owner only
+
+**Changing permissions with `set_attributes`:**
+
+```rust
+impl Vfs for MyVfs {
+    async fn set_attributes(&self, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
+        let mut item = self.get_item_mut(item_id)?;
+
+        if let Some(mode) = params.mode {
+            item.mode = mode;
+        }
+        if let Some(modified_time) = params.modified_time {
+            item.modified_time = modified_time;
+        }
+
+        VfsResult { error: errno::OK }
+    }
+}
+```
+
+**Note:** The protocol uses number-typed APIs (u64 for item_id, i32 for error codes, u32 for mode) which keeps it simple but requires understanding the numeric constants. Use the provided `mode::*` constants to avoid hardcoding octal values.
+
 ## See Also
 
 - [fs-kitty](https://github.com/bearcove/fs-kitty) - Main repository with FSKit extension

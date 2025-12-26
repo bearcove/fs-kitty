@@ -128,17 +128,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    cargo run
    ```
 
-3. **Create and mount a disk image**:
+3. **Mount using the fskitty:// URL scheme**:
    ```bash
-   # Create 100MB disk image
-   mkfile -n 100m /tmp/test.dmg
-   hdiutil attach -nomount /tmp/test.dmg
-   # Note the device name (e.g., /dev/disk4)
-
-   # Mount using your VFS
    mkdir -p ~/mymount
-   mount -t fskitty /dev/disk4 ~/mymount
+   mount -t fskitty fskitty://localhost:10001 ~/mymount
    ```
+
+   The URL format is `fskitty://host:port` where:
+   - `host` is the VFS server hostname (e.g., `localhost`, `127.0.0.1`)
+   - `port` is optional, defaults to `10001`
 
 4. **Test filesystem operations**:
    ```bash
@@ -151,7 +149,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 5. **Unmount when done**:
    ```bash
    umount ~/mymount
-   hdiutil detach /dev/disk4
    ```
 
 ## Important Details

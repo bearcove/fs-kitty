@@ -56,9 +56,13 @@
 		<key>FSShortName</key>
 		<string>fskitty</string>
 		<key>FSSupportsBlockResources</key>
-		<true/>
-		<key>FSSupportsGenericURLResources</key>
 		<false/>
+		<key>FSSupportsGenericURLResources</key>
+		<true/>
+		<key>FSSupportedSchemes</key>
+		<array>
+			<string>fskitty</string>
+		</array>
 		<key>FSSupportsPathURLs</key>
 		<false/>
 		<key>FSSupportsServerURLs</key>

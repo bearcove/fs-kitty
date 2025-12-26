@@ -3,8 +3,9 @@
 //! This implements a simple in-memory filesystem for testing.
 
 use fs_kitty_proto::{
-    errno, CreateResult, DirEntry, GetAttributesResult, ItemAttributes, ItemId, ItemType,
-    LookupResult, ReadDirResult, ReadResult, Vfs, VfsResult, VfsServer, WriteResult,
+    errno, mode, CreateResult, DirEntry, GetAttributesResult, ItemAttributes, ItemId, ItemType,
+    LookupResult, ReadDirResult, ReadResult, SetAttributesParams, Vfs, VfsResult, VfsServer,
+    WriteResult,
 };
 use rapace::RpcSession;
 use std::collections::HashMap;
@@ -21,6 +22,7 @@ struct FsItem {
     data: Vec<u8>,
     modified_time: u64,
     created_time: u64,
+    mode: u32,
 }
 
 /// Simple in-memory VFS implementation
@@ -44,6 +46,7 @@ impl MemoryVfs {
                 data: Vec::new(),
                 modified_time: 0,
                 created_time: 0,
+                mode: mode::DIRECTORY,
             },
         );
 
@@ -58,6 +61,7 @@ impl MemoryVfs {
                 data: b"Hello, World!\n".to_vec(),
                 modified_time: 0,
                 created_time: 0,
+                mode: mode::FILE_REGULAR,
             },
         );
 
@@ -71,6 +75,7 @@ impl MemoryVfs {
                 data: Vec::new(),
                 modified_time: 0,
                 created_time: 0,
+                mode: mode::DIRECTORY,
             },
         );
 
@@ -84,12 +89,28 @@ impl MemoryVfs {
                 data: b"# README\n\nThis is a test file.\n".to_vec(),
                 modified_time: 0,
                 created_time: 0,
+                mode: mode::FILE_REGULAR,
+            },
+        );
+
+        // Create an executable file for testing
+        items.insert(
+            5,
+            FsItem {
+                id: 5,
+                parent_id: 1,
+                name: "test.sh".to_string(),
+                item_type: ItemType::File,
+                data: b"#!/bin/bash\necho \"Hello from executable!\"\n".to_vec(),
+                modified_time: 0,
+                created_time: 0,
+                mode: mode::FILE_EXECUTABLE,
             },
         );
 
         Self {
             items: RwLock::new(items),
-            next_id: RwLock::new(5),
+            next_id: RwLock::new(6),
         }
     }
 
@@ -133,7 +154,10 @@ impl Vfs for MemoryVfs {
         let items = self.items.read().unwrap();
         match items.get(&item_id) {
             Some(item) => {
-                println!("  [server] -> found {:?}", item.name);
+                println!(
+                    "  [server] -> found {:?} (mode={:o})",
+                    item.name, item.mode
+                );
                 GetAttributesResult {
                     attrs: ItemAttributes {
                         item_id: item.id,
@@ -141,6 +165,7 @@ impl Vfs for MemoryVfs {
                         size: item.data.len() as u64,
                         modified_time: item.modified_time,
                         created_time: item.created_time,
+                        mode: item.mode,
                     },
                     error: errno::OK,
                 }
@@ -154,6 +179,7 @@ impl Vfs for MemoryVfs {
                         size: 0,
                         modified_time: 0,
                         created_time: 0,
+                        mode: 0,
                     },
                     error: errno::ENOENT,
                 }
@@ -331,6 +357,13 @@ impl Vfs for MemoryVfs {
             id
         };
 
+        // Set default mode based on type
+        let default_mode = match item_type {
+            ItemType::Directory => mode::DIRECTORY,
+            ItemType::File => mode::FILE_REGULAR,
+            ItemType::Symlink => 0o777, // symlinks typically have all permissions
+        };
+
         let new_item = FsItem {
             id: new_id,
             parent_id,
@@ -339,6 +372,7 @@ impl Vfs for MemoryVfs {
             data: Vec::new(),
             modified_time: 0,
             created_time: 0,
+            mode: default_mode,
         };
 
         self.items.write().unwrap().insert(new_id, new_item);
@@ -448,6 +482,35 @@ impl Vfs for MemoryVfs {
         }
     }
 
+    async fn set_attributes(&self, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
+        println!(
+            "  [server] set_attributes({}, mode={:?}, modified_time={:?})",
+            item_id, params.mode, params.modified_time
+        );
+
+        let mut items = self.items.write().unwrap();
+        match items.get_mut(&item_id) {
+            Some(item) => {
+                if let Some(mode) = params.mode {
+                    println!("  [server] -> setting mode to {:o}", mode);
+                    item.mode = mode;
+                }
+                if let Some(modified_time) = params.modified_time {
+                    println!("  [server] -> setting modified_time to {}", modified_time);
+                    item.modified_time = modified_time;
+                }
+                println!("  [server] -> attributes updated");
+                VfsResult { error: errno::OK }
+            }
+            None => {
+                println!("  [server] -> not found");
+                VfsResult {
+                    error: errno::ENOENT,
+                }
+            }
+        }
+    }
+
     async fn ping(&self) -> String {
         println!("  [server] ping()");
         "pong from memory VFS".to_string()
@@ -470,9 +533,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Listening on {}", addr);
     println!();
     println!("In-memory filesystem with:");
-    println!("  /hello.txt      - \"Hello, World!\"");
-    println!("  /documents/     - directory");
-    println!("  /documents/readme.md - test file");
+    println!("  /hello.txt           - regular file (mode 0o644)");
+    println!("  /test.sh             - executable file (mode 0o755)");
+    println!("  /documents/          - directory (mode 0o755)");
+    println!("  /documents/readme.md - regular file (mode 0o644)");
     println!();
     println!("Waiting for connections...");
 
