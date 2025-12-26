@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct FsKittyApp: App {
@@ -48,9 +49,10 @@ struct FsKittyApp: App {
 struct ContentView: View {
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "externaldrive.connected.to.line.below")
-                .font(.system(size: 64))
-                .foregroundColor(.accentColor)
+            // Use the app icon (cat) instead of generic SF Symbol
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 128, height: 128)
 
             Text("FsKitty")
                 .font(.largeTitle)
@@ -68,25 +70,18 @@ struct ContentView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
 
-                HStack(alignment: .top, spacing: 8) {
-                    Text("1.")
-                        .foregroundColor(.secondary)
-                    Text("Open System Settings")
-                }
+                Text("Go to Login Items & Extensions and enable \"FsKitty\" under File System Extensions")
+                    .font(.subheadline)
 
-                HStack(alignment: .top, spacing: 8) {
-                    Text("2.")
-                        .foregroundColor(.secondary)
-                    Text("Go to General → Login Items & Extensions")
+                Button(action: openLoginItemsSettings) {
+                    HStack {
+                        Image(systemName: "gear")
+                        Text("Open Login Items Settings")
+                    }
                 }
-
-                HStack(alignment: .top, spacing: 8) {
-                    Text("3.")
-                        .foregroundColor(.secondary)
-                    Text("Enable \"fskitty\" under File System Extensions")
-                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .font(.subheadline)
             .padding()
             .background(Color.secondary.opacity(0.1))
             .cornerRadius(8)
@@ -99,5 +94,11 @@ struct ContentView: View {
         }
         .padding(40)
         .frame(minWidth: 400, minHeight: 400)
+    }
+
+    private func openLoginItemsSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

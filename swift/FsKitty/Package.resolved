@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "rapace-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bearcove/rapace-swift",
+      "state" : {
+        "branch" : "main",
+        "revision" : "b4e5cd2f787595e72bc97d06eb220a88a5a928a0"
+      }
+    }
+  ],
+  "version" : 2
+}

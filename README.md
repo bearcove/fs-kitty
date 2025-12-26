@@ -16,11 +16,7 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 ┌───────────────▼─────────────────────────────────────────────┐
 │  FsKitty.appex                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │ Swift: FSKit protocol impl (thin layer)                │ │
-│  └──────────────┬─────────────────────────────────────────┘ │
-│                 │ swift-bridge                              │
-│  ┌──────────────▼─────────────────────────────────────────┐ │
-│  │ Rust: rapace client                                    │ │
+│  │ Pure Swift: FSKit impl + rapace-swift VfsClient       │ │
 │  └──────────────┬─────────────────────────────────────────┘ │
 └─────────────────┼───────────────────────────────────────────┘
                   │ TCP (rapace protocol)
@@ -32,42 +28,37 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 ## Key Design Decisions
 
-1. **Swift only where we must** - FSKit requires Swift, but we keep that layer as thin as possible
-2. **Rust for everything else** - The rapace client in the fsext, the protocol, the VFS backend
-3. **rapace for IPC** - High-performance multiplexed RPC (not protobuf)
-4. **swift-bridge for FFI** - Swift calls into Rust, not the other way around
-5. **TCP first** - Start simple, SHM zero-copy can come later
+1. **Pure Swift in the fsext** - No FFI, no Rust in the extension. Swift talks directly to the server.
+2. **Rust for the server** - The VFS backend is 100% Rust
+3. **rapace for IPC** - High-performance RPC with postcard serialization
+4. **[rapace-swift](https://github.com/bearcove/rapace-swift)** - Generated Swift client code, no bridging required
+5. **TCP first** - Simple and debuggable, SHM zero-copy can come later
 
 ## Status
 
 ### What Works ✅
 
-- **Swift ↔ Rust FFI** via swift-bridge (sync and async functions, structs, `Vec<T>`, `Result<T, E>`)
-- **Rapace RPC** over TCP with bidirectional calls
-- **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename
-- **Rust client/server** tested end-to-end
-- **Swift → Rust → TCP chain** tested with `swift/FsKitty`
+- **Pure Swift VFS client** via [rapace-swift](https://github.com/bearcove/rapace-swift) (no FFI!)
+- **Rapace RPC** over TCP with full postcard wire format
+- **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename, setAttributes
+- **Rust server** tested end-to-end
 - **FSKit extension** signed and working with Developer ID
 - **Real filesystem mounting** - successfully tested end-to-end with macOS FSKit
 
 ### What's Next
 
-1. ~~**Test Swift → Rust → TCP chain**~~ ✅ Complete
-2. ~~**FSKit extension code**~~ ✅ Complete - see `xcode/FsKittyExt/`
-3. ~~**Create Xcode project**~~ ✅ Complete - `just build` works
-4. ~~**Sign and test**~~ ✅ Complete - signed with Developer ID and tested
-5. ~~**Mount a real filesystem**~~ ✅ Complete - successfully mounted and tested end-to-end
+- SHM zero-copy transport for high-performance workloads
+- Streaming support for large file operations
 
 ## Project Structure
 
 ```
 fs-kitty/
 ├── crates/
-│   ├── fs-kitty-proto/     # Shared VFS protocol types
-│   ├── fs-kitty-swift/     # Rust lib exposed to Swift via swift-bridge
+│   ├── fs-kitty-proto/     # Shared VFS protocol types (rapace service)
 │   ├── fs-kitty-server/    # In-memory VFS server (for testing)
 │   └── fs-kitty-client/    # CLI VFS client (for testing)
-├── swift/FsKitty/          # SPM test harness for swift-bridge
+├── swift/FsKitty/          # SPM test harness (pure Swift via rapace-swift)
 └── xcode/
     ├── FsKitty/            # Host app source files
     └── FsKittyExt/         # FSKit extension source files
@@ -75,9 +66,7 @@ fs-kitty/
         ├── Bridge.swift        # FSUnaryFileSystem implementation
         ├── Volume.swift        # FSVolume implementation
         ├── Item.swift          # FSItem wrapper
-        ├── BridgeHeaders/      # C headers for swift-bridge
-        ├── SwiftBridgeCore.swift
-        └── fs-kitty-swift.swift
+        └── VfsClient.swift     # Generated rapace client
 ```
 
 ## Building
@@ -188,7 +177,7 @@ just server
 # Terminal 2: Test with CLI client
 cargo run --package fs-kitty-client
 
-# Or test Swift → Rust → TCP integration
+# Or test pure Swift VFS client
 just test-swift
 ```
 
@@ -242,8 +231,25 @@ just check-extension
 ## Dependencies
 
 - [rapace](https://github.com/bearcove/rapace) - High-performance RPC
-- [swift-bridge](https://github.com/chinedufn/swift-bridge) - Swift-Rust FFI
+- [rapace-swift](https://github.com/bearcove/rapace-swift) - Pure Swift rapace client (generated from proto)
 - [facet](https://github.com/facet-rs/facet) - Serialization (used by rapace)
+
+## Generating the Swift Client
+
+The `VfsClient.swift` is generated from `fs-kitty-proto` using [rapace-swift-codegen](https://github.com/bearcove/rapace-swift):
+
+```bash
+# In the rapace-swift repo:
+cd test-harness/fs-kitty-codegen
+cargo run
+# Outputs VfsClient.swift
+```
+
+This generates a pure Swift client with:
+- All VFS types (`LookupResult`, `ReadDirResult`, `ItemAttributes`, etc.)
+- `VfsClient` actor with async methods for all RPC calls
+- Postcard serialization (varints, zigzag, length-prefixed strings)
+- No FFI, no Rust runtime required
 
 ## License
 
