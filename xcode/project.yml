@@ -2,14 +2,14 @@ name: FsKitty
 options:
   bundleIdPrefix: me.amos
   deploymentTarget:
-    macOS: "15.4"
+    macOS: "26.0"
   xcodeVersion: "16.0"
   createIntermediateGroups: true
 
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MACOSX_DEPLOYMENT_TARGET: "15.4"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
     DEVELOPMENT_TEAM: B2N6FSRTPV
     CODE_SIGN_STYLE: Automatic
 
