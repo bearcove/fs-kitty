@@ -129,26 +129,28 @@ public struct FfiItemAttributes {
     public var size: UInt64
     public var modified_time: UInt64
     public var created_time: UInt64
+    public var mode: UInt32
     public var error: Int32
 
-    public init(item_id: UInt64,item_type: UInt8,size: UInt64,modified_time: UInt64,created_time: UInt64,error: Int32) {
+    public init(item_id: UInt64,item_type: UInt8,size: UInt64,modified_time: UInt64,created_time: UInt64,mode: UInt32,error: Int32) {
         self.item_id = item_id
         self.item_type = item_type
         self.size = size
         self.modified_time = modified_time
         self.created_time = created_time
+        self.mode = mode
         self.error = error
     }
 
     @inline(__always)
     func intoFfiRepr() -> __swift_bridge__$FfiItemAttributes {
-        { let val = self; return __swift_bridge__$FfiItemAttributes(item_id: val.item_id, item_type: val.item_type, size: val.size, modified_time: val.modified_time, created_time: val.created_time, error: val.error); }()
+        { let val = self; return __swift_bridge__$FfiItemAttributes(item_id: val.item_id, item_type: val.item_type, size: val.size, modified_time: val.modified_time, created_time: val.created_time, mode: val.mode, error: val.error); }()
     }
 }
 extension __swift_bridge__$FfiItemAttributes {
     @inline(__always)
     func intoSwiftRepr() -> FfiItemAttributes {
-        { let val = self; return FfiItemAttributes(item_id: val.item_id, item_type: val.item_type, size: val.size, modified_time: val.modified_time, created_time: val.created_time, error: val.error); }()
+        { let val = self; return FfiItemAttributes(item_id: val.item_id, item_type: val.item_type, size: val.size, modified_time: val.modified_time, created_time: val.created_time, mode: val.mode, error: val.error); }()
     }
 }
 extension __swift_bridge__$Option$FfiItemAttributes {

@@ -43,6 +43,7 @@ mod ffi {
         size: u64,
         modified_time: u64,
         created_time: u64,
+        mode: u32,
         error: i32,
     }
 
@@ -199,6 +200,7 @@ fn vfs_get_attributes(item_id: u64) -> Result<FfiItemAttributes, String> {
         size: result.attrs.size,
         modified_time: result.attrs.modified_time,
         created_time: result.attrs.created_time,
+        mode: result.attrs.mode,
         error: result.error,
     })
 }

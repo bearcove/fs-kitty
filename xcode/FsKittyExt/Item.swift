@@ -32,7 +32,8 @@ extension FSItem.Attributes {
         itemType: UInt8,
         size: UInt64,
         modifiedTime: UInt64,
-        createdTime: UInt64
+        createdTime: UInt64,
+        mode: UInt32
     ) -> FSItem.Attributes {
         let attrs = FSItem.Attributes()
 
@@ -62,12 +63,8 @@ extension FSItem.Attributes {
         attrs.changeTime = timespec(tv_sec: Int(modifiedTime), tv_nsec: 0)
         attrs.accessTime = timespec(tv_sec: Int(modifiedTime), tv_nsec: 0)
 
-        // Default permissions (rwxr-xr-x for dirs, rw-r--r-- for files)
-        if attrs.type == .directory {
-            attrs.mode = 0o755
-        } else {
-            attrs.mode = 0o644
-        }
+        // Use mode from VFS (e.g., 0o755 for executable, 0o644 for regular)
+        attrs.mode = mode
 
         // Default uid/gid
         attrs.uid = 501
