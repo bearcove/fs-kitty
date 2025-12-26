@@ -87,7 +87,8 @@ extension Volume: FSVolume.Operations {
             itemType: attrs.item_type,
             size: attrs.size,
             modifiedTime: attrs.modified_time,
-            createdTime: attrs.created_time
+            createdTime: attrs.created_time,
+            mode: attrs.mode
         )
 
         // Mark as root directory
@@ -119,7 +120,8 @@ extension Volume: FSVolume.Operations {
             itemType: attrs.item_type,
             size: attrs.size,
             modifiedTime: attrs.modified_time,
-            createdTime: attrs.created_time
+            createdTime: attrs.created_time,
+            mode: attrs.mode
         )
         item.updateAttributes(fsAttrs)
         return fsAttrs
@@ -166,7 +168,8 @@ extension Volume: FSVolume.Operations {
             itemType: itemType,
             size: attrs.size,
             modifiedTime: attrs.modified_time,
-            createdTime: attrs.created_time
+            createdTime: attrs.created_time,
+            mode: attrs.mode
         )
 
         // Check if we already have this item cached
@@ -218,7 +221,8 @@ extension Volume: FSVolume.Operations {
             itemType: vfsType,
             size: attrs.size,
             modifiedTime: attrs.modified_time,
-            createdTime: attrs.created_time
+            createdTime: attrs.created_time,
+            mode: attrs.mode
         )
 
         let item = Item(itemId: result.item_id, name: nameStr, attributes: fsAttrs)
@@ -309,12 +313,16 @@ extension Volume: FSVolume.Operations {
             let itemId = result.item_ids.get(index: i)!
             let itemType = result.item_types.get(index: i)!
 
+            // DirEntry doesn't include mode, use default based on type
+            // Real mode is fetched when lookupItem or attributes is called
+            let defaultMode: UInt32 = (itemType == 1) ? 0o755 : 0o644
             let entryAttrs = FSItem.Attributes.fromVfs(
                 itemId: itemId,
                 itemType: itemType,
                 size: 0,  // Size not included in DirEntry
                 modifiedTime: 0,
-                createdTime: 0
+                createdTime: 0,
+                mode: defaultMode
             )
 
             let entryItem = Item(itemId: itemId, name: nameStr, attributes: entryAttrs)
