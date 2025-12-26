@@ -385,12 +385,17 @@ extension Volume: FSVolume.ReadWriteOperations {
         to fsItem: FSItem,
         at offset: off_t
     ) async throws -> Int {
-        let item = try getItem(fsItem)
-        log.d("write: itemId=\(item.itemId) offset=\(offset) length=\(contents.count)")
+        // IMPORTANT: Copy data immediately before any async suspension point.
+        // FSKit may free the underlying NSData buffer, causing heap corruption
+        // if we access it after an await.
+        let bytes = [UInt8](contents)
 
-        // Convert Data to RustVec<UInt8>
+        let item = try getItem(fsItem)
+        log.d("write: itemId=\(item.itemId) offset=\(offset) length=\(bytes.count)")
+
+        // Convert to RustVec<UInt8>
         let rustVec = RustVec<UInt8>()
-        for byte in contents {
+        for byte in bytes {
             rustVec.push(value: byte)
         }
 
