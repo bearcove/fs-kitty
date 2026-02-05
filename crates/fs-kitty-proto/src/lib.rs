@@ -28,49 +28,11 @@
 //! }
 //! ```
 //!
-//! Then serve it over TCP using rapace:
-//!
-//! ```rust,no_run
-//! # use fs_kitty_proto::*;
-//! # struct MyVfs;
-//! # impl Vfs for MyVfs {
-//! #   async fn lookup(&self, parent_id: ItemId, name: String) -> LookupResult { todo!() }
-//! #   async fn get_attributes(&self, item_id: ItemId) -> GetAttributesResult { todo!() }
-//! #   async fn read_dir(&self, item_id: ItemId, cursor: u64) -> ReadDirResult { todo!() }
-//! #   async fn read(&self, item_id: ItemId, offset: u64, len: u64) -> ReadResult { todo!() }
-//! #   async fn write(&self, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult { todo!() }
-//! #   async fn create(&self, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult { todo!() }
-//! #   async fn delete(&self, item_id: ItemId) -> VfsResult { todo!() }
-//! #   async fn rename(&self, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult { todo!() }
-//! #   async fn ping(&self) -> String { todo!() }
-//! # }
-//! use rapace::RpcSession;
-//! use std::sync::Arc;
-//! use tokio::net::TcpListener;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let listener = TcpListener::bind("127.0.0.1:10001").await?;
-//!     let vfs = Arc::new(MyVfs);
-//!
-//!     loop {
-//!         let (socket, _) = listener.accept().await?;
-//!         let vfs = Arc::clone(&vfs);
-//!
-//!         tokio::spawn(async move {
-//!             let transport = rapace::Transport::stream(socket);
-//!             let session = Arc::new(RpcSession::new(transport.clone()));
-//!             let vfs_server = VfsServer::new(vfs);
-//!             session.set_dispatcher(vfs_server.into_session_dispatcher(transport));
-//!             let _ = session.run().await;
-//!         });
-//!     }
-//! }
-//! ```
+//! Then serve it over TCP using the generated `VfsDispatcher` with `roam_stream::accept`.
 //!
 //! ## Architecture
 //!
-//! This crate defines the rapace service trait and types shared between:
+//! This crate defines the roam service trait and types shared between:
 //! - `fs-kitty-swift` - the Swift/Rust client embedded in the FSKit extension
 //! - VFS backends - servers implementing the filesystem (like `fs-kitty-server`)
 
@@ -178,7 +140,7 @@ pub struct SetAttributesParams {
 
 /// The VFS service trait - defines the RPC interface between client and server.
 #[allow(async_fn_in_trait)]
-#[rapace::service]
+#[roam::service]
 pub trait Vfs {
     /// Look up an item by name in a parent directory.
     async fn lookup(&self, parent_id: ItemId, name: String) -> LookupResult;

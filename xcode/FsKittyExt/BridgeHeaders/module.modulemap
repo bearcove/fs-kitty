@@ -1,4 +1,0 @@
-module BridgeHeaders {
-    header "BridgeHeaders.h"
-    export *
-}

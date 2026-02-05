@@ -11,16 +11,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/bearcove/fs-kitty"
 
 [workspace.dependencies]
-# Swift bridge
-swift-bridge = { version = "0.1", features = ["async"] }
-swift-bridge-build = "0.1"
-
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
-# Rapace (git)
-rapace = { git = "https://github.com/bearcove/rapace" }
-rapace-core = { git = "https://github.com/bearcove/rapace" }
+# Roam (git)
+roam = { git = "https://github.com/bearcove/roam", branch = "main" }
+roam-stream = { git = "https://github.com/bearcove/roam", branch = "main" }
 
 # Serialization (must match rapace's facet version)
 facet = { git = "https://github.com/facet-rs/facet", branch = "main", features = ["camino"] }

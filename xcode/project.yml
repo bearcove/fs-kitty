@@ -13,6 +13,11 @@ settings:
     DEVELOPMENT_TEAM: B2N6FSRTPV
     CODE_SIGN_STYLE: Automatic
 
+packages:
+  rapace-swift:
+    url: https://github.com/bearcove/rapace-swift
+    branch: main
+
 targets:
   FsKitty:
     type: application
@@ -44,7 +49,6 @@ targets:
       - path: FsKittyExt
         excludes:
           - "*.entitlements"
-          - BridgeHeaders
           - Info.plist
     entitlements:
       path: FsKittyExt/FsKittyExt.entitlements
@@ -59,18 +63,8 @@ targets:
         INFOPLIST_FILE: FsKittyExt/Info.plist
         GENERATE_INFOPLIST_FILE: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # Swift settings
-        SWIFT_OBJC_BRIDGING_HEADER: ""
-        SWIFT_INCLUDE_PATHS: "$(SRCROOT)/FsKittyExt/BridgeHeaders"
-        # Header search paths for swift-bridge generated headers
-        HEADER_SEARCH_PATHS:
-          - "$(inherited)"
-          - "$(SRCROOT)/FsKittyExt/BridgeHeaders"
-        # Link to Rust static library
-        LIBRARY_SEARCH_PATHS:
-          - "$(inherited)"
-          - "$(SRCROOT)/../target/release"
-        OTHER_LDFLAGS:
-          - "-lfs_kitty_swift"
-        # Required for C interop
-        CLANG_ENABLE_MODULES: true
+    dependencies:
+      - package: rapace-swift
+        product: Rapace
+      - package: rapace-swift
+        product: Postcard

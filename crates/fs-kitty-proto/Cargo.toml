@@ -7,5 +7,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-rapace.workspace = true
+roam.workspace = true
 facet.workspace = true

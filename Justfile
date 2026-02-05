@@ -3,27 +3,16 @@
 # Default recipe - build everything
 default: build
 
-# Build everything (Rust + Xcode) and copy to build/
+# Build everything (Rust server + Xcode app)
 build: build-rust build-xcode
     @echo "Build complete! Output in build/"
 
-# Build just the Rust library
+# Build Rust components (server, client, proto)
 build-rust:
-    cargo build --release --package fs-kitty-swift
-
-# Regenerate Swift bindings and copy to xcode directory
-update-bindings: build-rust
-    cp crates/fs-kitty-swift/generated/SwiftBridgeCore.swift xcode/FsKittyExt/
-    cp crates/fs-kitty-swift/generated/fs-kitty-swift/fs-kitty-swift.swift xcode/FsKittyExt/
-    cat crates/fs-kitty-swift/generated/SwiftBridgeCore.h \
-        crates/fs-kitty-swift/generated/fs-kitty-swift/fs-kitty-swift.h \
-        > xcode/FsKittyExt/BridgeHeaders/BridgeHeaders.h
-    # Add import BridgeHeaders to generated Swift files
-    sed -i '' '1s/^/import BridgeHeaders\n\n/' xcode/FsKittyExt/fs-kitty-swift.swift
-    sed -i '' 's/^import Foundation$/import Foundation\nimport BridgeHeaders/' xcode/FsKittyExt/SwiftBridgeCore.swift
+    cargo build --release
 
 # Build the Xcode project (Release config - Debug stub doesn't work with ExtensionKit)
-build-xcode: build-rust xcode-gen
+build-xcode: xcode-gen
     mkdir -p build
     xcodebuild -project xcode/FsKitty.xcodeproj \
         -scheme FsKitty \
@@ -34,7 +23,7 @@ build-xcode: build-rust xcode-gen
     @echo "FsKitty.app is at build/Release/FsKitty.app"
 
 # Build debug configuration (WARNING: Debug stub doesn't work with ExtensionKit!)
-build-debug: build-rust xcode-gen
+build-debug: xcode-gen
     mkdir -p build
     xcodebuild -project xcode/FsKitty.xcodeproj \
         -scheme FsKitty \
@@ -58,7 +47,7 @@ xcode-gen:
 server:
     cargo run --package fs-kitty-server
 
-# Test Swift → Rust → TCP chain
+# Test pure Swift VFS client
 test-swift:
     cd swift/FsKitty && swift run
 

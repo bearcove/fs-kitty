@@ -3,7 +3,7 @@
 Cargo.lock
 
 # Build output
-/build/
+build/
 
 # Swift
 swift/*/.build/
