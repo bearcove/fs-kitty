@@ -1,8 +1,6 @@
 import FSKit
 import Foundation
 import os
-import Rapace
-import Postcard
 
 /// FSKit Volume implementation that delegates to the VFS client.
 final class Volume: FSVolume {
@@ -89,18 +87,18 @@ extension Volume: FSVolume.Operations {
 
         // Get root directory attributes from VFS
         let vfsClient = try await client()
-        let result = try await vfsClient.getAttributes(rootId)
+        let result = try await vfsClient.getAttributes(itemId: rootId)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
         }
 
         let rootAttrs = FSItem.Attributes.fromVfs(
-            itemId: result.attrs.item_id,
-            itemType: result.attrs.item_type,
+            itemId: result.attrs.itemId,
+            itemType: result.attrs.itemType,
             size: result.attrs.size,
-            modifiedTime: result.attrs.modified_time,
-            createdTime: result.attrs.created_time,
+            modifiedTime: result.attrs.modifiedTime,
+            createdTime: result.attrs.createdTime,
             mode: result.attrs.mode
         )
 
@@ -127,18 +125,18 @@ extension Volume: FSVolume.Operations {
         log.debug("attributes: itemId=\(item.itemId)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.getAttributes(item.itemId)
+        let result = try await vfsClient.getAttributes(itemId: item.itemId)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
         }
 
         let fsAttrs = FSItem.Attributes.fromVfs(
-            itemId: result.attrs.item_id,
-            itemType: result.attrs.item_type,
+            itemId: result.attrs.itemId,
+            itemType: result.attrs.itemType,
             size: result.attrs.size,
-            modifiedTime: result.attrs.modified_time,
-            createdTime: result.attrs.created_time,
+            modifiedTime: result.attrs.modifiedTime,
+            createdTime: result.attrs.createdTime,
             mode: result.attrs.mode
         )
         item.updateAttributes(fsAttrs)
@@ -166,7 +164,7 @@ extension Volume: FSVolume.Operations {
         log.debug("lookupItem: name=\(nameStr) in dir=\(dirItem.itemId)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.lookup(parent_id: dirItem.itemId, name: nameStr)
+        let result = try await vfsClient.lookup(parentId: dirItem.itemId, name: nameStr)
 
         if result.error != 0 {
             log.debug("lookupItem: not found (error=\(result.error))")
@@ -174,24 +172,24 @@ extension Volume: FSVolume.Operations {
         }
 
         // Get full attributes for the found item
-        let attrsResult = try await vfsClient.getAttributes(result.item_id)
+        let attrsResult = try await vfsClient.getAttributes(itemId: result.itemId)
 
         let fsAttrs = FSItem.Attributes.fromVfs(
-            itemId: result.item_id,
-            itemType: result.item_type,
+            itemId: result.itemId,
+            itemType: result.itemType,
             size: attrsResult.attrs.size,
-            modifiedTime: attrsResult.attrs.modified_time,
-            createdTime: attrsResult.attrs.created_time,
+            modifiedTime: attrsResult.attrs.modifiedTime,
+            createdTime: attrsResult.attrs.createdTime,
             mode: attrsResult.attrs.mode
         )
 
         // Check if we already have this item cached
-        if let existing = items[result.item_id] {
+        if let existing = items[result.itemId] {
             existing.updateAttributes(fsAttrs)
             return (existing, existing.name)
         }
 
-        let item = Item(itemId: result.item_id, name: nameStr, attributes: fsAttrs)
+        let item = Item(itemId: result.itemId, name: nameStr, attributes: fsAttrs)
         cacheItem(item)
         return (item, item.name)
     }
@@ -221,25 +219,25 @@ extension Volume: FSVolume.Operations {
 
         let vfsType: ItemType = (type == .directory) ? .directory : .file
         let vfsClient = try await client()
-        let result = try await vfsClient.create(parent_id: dirItem.itemId, name: nameStr, item_type: vfsType)
+        let result = try await vfsClient.create(parentId: dirItem.itemId, name: nameStr, itemType: vfsType)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
         }
 
         // Get attributes for new item
-        let attrsResult = try await vfsClient.getAttributes(result.item_id)
+        let attrsResult = try await vfsClient.getAttributes(itemId: result.itemId)
 
         let fsAttrs = FSItem.Attributes.fromVfs(
-            itemId: result.item_id,
+            itemId: result.itemId,
             itemType: vfsType,
             size: attrsResult.attrs.size,
-            modifiedTime: attrsResult.attrs.modified_time,
-            createdTime: attrsResult.attrs.created_time,
+            modifiedTime: attrsResult.attrs.modifiedTime,
+            createdTime: attrsResult.attrs.createdTime,
             mode: attrsResult.attrs.mode
         )
 
-        let item = Item(itemId: result.item_id, name: nameStr, attributes: fsAttrs)
+        let item = Item(itemId: result.itemId, name: nameStr, attributes: fsAttrs)
         cacheItem(item)
         return (item, item.name)
     }
@@ -272,7 +270,7 @@ extension Volume: FSVolume.Operations {
         log.debug("removeItem: itemId=\(item.itemId)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.delete(item.itemId)
+        let result = try await vfsClient.delete(itemId: item.itemId)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
@@ -295,7 +293,7 @@ extension Volume: FSVolume.Operations {
         log.debug("renameItem: itemId=\(item.itemId) -> \(destName) in \(destDir.itemId)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.rename(item_id: item.itemId, new_parent_id: destDir.itemId, new_name: destName)
+        let result = try await vfsClient.rename(itemId: item.itemId, newParentId: destDir.itemId, newName: destName)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
@@ -315,7 +313,7 @@ extension Volume: FSVolume.Operations {
         log.debug("enumerateDirectory: itemId=\(dirItem.itemId) cookie=\(cookie.rawValue)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.readDir(item_id: dirItem.itemId, cursor: cookie.rawValue)
+        let result = try await vfsClient.readDir(itemId: dirItem.itemId, cursor: cookie.rawValue)
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
@@ -325,17 +323,17 @@ extension Volume: FSVolume.Operations {
         for entry in result.entries {
             // DirEntry doesn't include mode, use default based on type
             // Real mode is fetched when lookupItem or attributes is called
-            let defaultMode: UInt32 = (entry.item_type == .directory) ? 0o755 : 0o644
+            let defaultMode: UInt32 = (entry.itemType == .directory) ? 0o755 : 0o644
             let entryAttrs = FSItem.Attributes.fromVfs(
-                itemId: entry.item_id,
-                itemType: entry.item_type,
+                itemId: entry.itemId,
+                itemType: entry.itemType,
                 size: 0,  // Size not included in DirEntry
                 modifiedTime: 0,
                 createdTime: 0,
                 mode: defaultMode
             )
 
-            let entryItem = Item(itemId: entry.item_id, name: entry.name, attributes: entryAttrs)
+            let entryItem = Item(itemId: entry.itemId, name: entry.name, attributes: entryAttrs)
             cacheItem(entryItem)
 
             let shouldContinue = packer.packEntry(
@@ -352,7 +350,7 @@ extension Volume: FSVolume.Operations {
             nextCookie += 1
         }
 
-        return FSDirectoryVerifier(result.next_cursor)
+        return FSDirectoryVerifier(result.nextCursor)
     }
 }
 
@@ -369,7 +367,7 @@ extension Volume: FSVolume.ReadWriteOperations {
         log.debug("read: itemId=\(item.itemId) offset=\(offset) length=\(length)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.read(item_id: item.itemId, offset: UInt64(offset), len: UInt64(length))
+        let result = try await vfsClient.read(itemId: item.itemId, offset: UInt64(offset), len: UInt64(length))
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
@@ -401,13 +399,13 @@ extension Volume: FSVolume.ReadWriteOperations {
         log.debug("write: itemId=\(item.itemId) offset=\(offset) length=\(bytes.count)")
 
         let vfsClient = try await client()
-        let result = try await vfsClient.write(item_id: item.itemId, offset: UInt64(offset), data: bytes)
+        let result = try await vfsClient.write(itemId: item.itemId, offset: UInt64(offset), data: Data(bytes))
 
         if result.error != 0 {
             throw fs_errorForPOSIXError(result.error)
         }
 
-        return Int(result.bytes_written)
+        return Int(result.bytesWritten)
     }
 }
 

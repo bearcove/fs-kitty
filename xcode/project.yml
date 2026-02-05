@@ -14,8 +14,8 @@ settings:
     CODE_SIGN_STYLE: Automatic
 
 packages:
-  rapace-swift:
-    url: https://github.com/bearcove/rapace-swift
+  roam:
+    url: https://github.com/bearcove/roam.git
     branch: main
 
 targets:
@@ -64,7 +64,5 @@ targets:
         GENERATE_INFOPLIST_FILE: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
-      - package: rapace-swift
-        product: Rapace
-      - package: rapace-swift
-        product: Postcard
+      - package: roam
+        product: RoamRuntime

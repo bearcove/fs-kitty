@@ -1,16 +1,39 @@
-// FsKitty: Pure Swift VFS client using rapace-swift
+// FsKitty: Pure Swift VFS client using RoamRuntime
 import Foundation
-import Rapace
-import Postcard
+import RoamRuntime
+
+final class NoopDispatcher: ServiceDispatcher, @unchecked Sendable {
+    func preregister(methodId: UInt64, payload: [UInt8], registry: ChannelRegistry) async {}
+
+    func dispatch(
+        methodId: UInt64,
+        payload: [UInt8],
+        requestId: UInt64,
+        registry: ChannelRegistry,
+        taskTx: @escaping @Sendable (TaskMessage) -> Void
+    ) async {
+        taskTx(.response(requestId: requestId, payload: encodeUnknownMethodError()))
+    }
+}
 
 func main() async {
-    print("FsKitty: Pure Swift VFS client via rapace-swift")
+    print("FsKitty: Pure Swift VFS client via roam-runtime")
     print("================================================\n")
 
     do {
-        // Connect to VFS server
+        // Connect to VFS server and establish roam session
         print("Connecting to VFS server at 127.0.0.1:10001...")
-        let client = try await VfsClient(host: "127.0.0.1", port: 10001)
+        let transport = try await connect(host: "127.0.0.1", port: 10001)
+        let hello = Hello.v3(maxPayloadSize: 1024 * 1024, initialChannelCredit: 64 * 1024)
+        let (handle, driver) = try await establishInitiator(
+            transport: transport,
+            ourHello: hello,
+            dispatcher: NoopDispatcher()
+        )
+        let driverTask = Task {
+            try await driver.run()
+        }
+        let client = VfsClient(connection: handle)
         print("Connected!\n")
 
         // Ping
@@ -20,39 +43,41 @@ func main() async {
 
         // Read root directory
         print("--- readDir (/) ---")
-        let root = try await client.readDir(item_id: 1, cursor: 0)
+        let root = try await client.readDir(itemId: 1, cursor: 0)
         for entry in root.entries {
-            let icon = entry.item_type == .directory ? "📁" : "📄"
+            let icon = entry.itemType == .directory ? "📁" : "📄"
             print("  \(icon) \(entry.name)")
         }
         print()
 
         // Lookup and read hello.txt
         print("--- read hello.txt ---")
-        let lookup = try await client.lookup(parent_id: 1, name: "hello.txt")
-        let content = try await client.read(item_id: lookup.item_id, offset: 0, len: 1024)
-        if let text = String(data: Data(content.data), encoding: .utf8) {
+        let lookup = try await client.lookup(parentId: 1, name: "hello.txt")
+        let content = try await client.read(itemId: lookup.itemId, offset: 0, len: 1024)
+        if let text = String(data: content.data, encoding: .utf8) {
             print("Content: \"\(text.trimmingCharacters(in: .newlines))\"")
         }
         print()
 
         // Create, write, read, delete a test file
         print("--- create/write/read/delete test ---")
-        let created = try await client.create(parent_id: 1, name: "swift-test.txt", item_type: .file)
-        print("Created file id=\(created.item_id)")
+        let created = try await client.create(parentId: 1, name: "swift-test.txt", itemType: .file)
+        print("Created file id=\(created.itemId)")
 
-        let testData = Array("Hello from pure Swift!".utf8)
-        let written = try await client.write(item_id: created.item_id, offset: 0, data: testData)
-        print("Wrote \(written.bytes_written) bytes")
+        let testData = Data("Hello from pure Swift!".utf8)
+        let written = try await client.write(itemId: created.itemId, offset: 0, data: testData)
+        print("Wrote \(written.bytesWritten) bytes")
 
-        let readBack = try await client.read(item_id: created.item_id, offset: 0, len: 1024)
-        if let text = String(data: Data(readBack.data), encoding: .utf8) {
+        let readBack = try await client.read(itemId: created.itemId, offset: 0, len: 1024)
+        if let text = String(data: readBack.data, encoding: .utf8) {
             print("Read back: \"\(text)\"")
         }
 
-        let deleted = try await client.delete(created.item_id)
+        let deleted = try await client.delete(itemId: created.itemId)
         print("Deleted (error=\(deleted.error))")
         print()
+
+        driverTask.cancel()
 
         print("================================================")
         print("All operations successful! Pure Swift VFS works.")

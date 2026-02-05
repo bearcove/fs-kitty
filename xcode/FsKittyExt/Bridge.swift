@@ -1,14 +1,30 @@
 import FSKit
 import Foundation
 import os
-import Rapace
-import Postcard
+import RoamRuntime
+
+extension VfsClient: @unchecked Sendable {}
+
+final class NoopDispatcher: ServiceDispatcher, @unchecked Sendable {
+    func preregister(methodId: UInt64, payload: [UInt8], registry: ChannelRegistry) async {}
+
+    func dispatch(
+        methodId: UInt64,
+        payload: [UInt8],
+        requestId: UInt64,
+        registry: ChannelRegistry,
+        taskTx: @escaping @Sendable (TaskMessage) -> Void
+    ) async {
+        taskTx(.response(requestId: requestId, payload: encodeUnknownMethodError()))
+    }
+}
 
 /// Global VFS client shared across the extension
 actor VfsConnection {
     static let shared = VfsConnection()
 
     private var client: VfsClient?
+    private var driverTask: Task<Void, Never>?
     private let log = Logger(subsystem: "me.amos.fs-kitty.ext", category: "VfsConnection")
 
     func connect(address: String) async throws {
@@ -20,18 +36,36 @@ actor VfsConnection {
         // Parse host:port
         let parts = address.split(separator: ":")
         guard parts.count == 2,
-              let port = UInt16(parts[1]) else {
+              let port = Int(parts[1]) else {
             throw NSError(domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid address format: \(address)"])
         }
 
         let host = String(parts[0])
         log.info("Connecting to \(host):\(port)")
 
-        client = try await VfsClient(host: host, port: port)
+        let transport = try await RoamRuntime.connect(host: host, port: port)
+        let hello = Hello.v3(maxPayloadSize: 1024 * 1024, initialChannelCredit: 64 * 1024)
+        let (handle, driver) = try await establishInitiator(
+            transport: transport,
+            ourHello: hello,
+            dispatcher: NoopDispatcher()
+        )
+
+        let logger = log
+        driverTask = Task {
+            do {
+                try await driver.run()
+            } catch {
+                logger.error("Roam driver exited with error: \(error.localizedDescription)")
+            }
+        }
+        client = VfsClient(connection: handle)
         log.info("Connected!")
     }
 
     func disconnect() {
+        driverTask?.cancel()
+        driverTask = nil
         client = nil
     }
 

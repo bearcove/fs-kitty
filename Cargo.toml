@@ -14,10 +14,13 @@ repository = "https://github.com/bearcove/fs-kitty"
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
+# Rapace (still used by legacy Rust crates during migration)
+rapace = { version = "0.5", features = ["stream"] }
+
 # Roam (git)
 roam = { git = "https://github.com/bearcove/roam", branch = "main" }
 roam-stream = { git = "https://github.com/bearcove/roam", branch = "main" }
 
-# Serialization (must match rapace's facet version)
+# Serialization
 facet = { git = "https://github.com/facet-rs/facet", branch = "main", features = ["camino"] }
 facet-core = { git = "https://github.com/facet-rs/facet", branch = "main" }

@@ -58,9 +58,9 @@ pub struct ItemAttributes {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, facet::Facet)]
 #[repr(u8)]
 pub enum ItemType {
-    File,
-    Directory,
-    Symlink,
+    File = 0,
+    Directory = 1,
+    Symlink = 2,
 }
 
 /// Result of a lookup operation

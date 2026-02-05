@@ -16,10 +16,10 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 ┌───────────────▼─────────────────────────────────────────────┐
 │  FsKitty.appex                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │ Pure Swift: FSKit impl + rapace-swift VfsClient       │ │
+│  │ Pure Swift: FSKit impl + Roam-generated VfsClient     │ │
 │  └──────────────┬─────────────────────────────────────────┘ │
 └─────────────────┼───────────────────────────────────────────┘
-                  │ TCP (rapace protocol)
+                  │ TCP (roam protocol)
 ┌─────────────────▼───────────────────────────────────────────┐
 │  Your Rust VFS App (rapace server)                          │
 │  (implements actual filesystem logic)                        │
@@ -30,16 +30,16 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 
 1. **Pure Swift in the fsext** - No FFI, no Rust in the extension. Swift talks directly to the server.
 2. **Rust for the server** - The VFS backend is 100% Rust
-3. **rapace for IPC** - High-performance RPC with postcard serialization
-4. **[rapace-swift](https://github.com/bearcove/rapace-swift)** - Generated Swift client code, no bridging required
+3. **roam for IPC** - High-performance RPC with postcard serialization
+4. **Roam Swift runtime** - Generated Swift client code + runtime, no bridging required
 5. **TCP first** - Simple and debuggable, SHM zero-copy can come later
 
 ## Status
 
 ### What Works ✅
 
-- **Pure Swift VFS client** via [rapace-swift](https://github.com/bearcove/rapace-swift) (no FFI!)
-- **Rapace RPC** over TCP with full postcard wire format
+- **Pure Swift VFS client** via Roam-generated Swift bindings (no FFI!)
+- **Roam RPC** over TCP with full postcard wire format
 - **Full VFS protocol** - lookup, read, write, readdir, create, delete, rename, setAttributes
 - **Rust server** tested end-to-end
 - **FSKit extension** signed and working with Developer ID
@@ -55,10 +55,10 @@ A Rust-first FSKit file system extension for macOS. Own every line of code.
 ```
 fs-kitty/
 ├── crates/
-│   ├── fs-kitty-proto/     # Shared VFS protocol types (rapace service)
+│   ├── fs-kitty-proto/     # Shared VFS protocol types (roam service)
 │   ├── fs-kitty-server/    # In-memory VFS server (for testing)
 │   └── fs-kitty-client/    # CLI VFS client (for testing)
-├── swift/FsKitty/          # SPM test harness (pure Swift via rapace-swift)
+├── swift/FsKitty/          # SPM test harness (pure Swift via RoamRuntime)
 └── xcode/
     ├── FsKitty/            # Host app source files
     └── FsKittyExt/         # FSKit extension source files
@@ -66,7 +66,7 @@ fs-kitty/
         ├── Bridge.swift        # FSUnaryFileSystem implementation
         ├── Volume.swift        # FSVolume implementation
         ├── Item.swift          # FSItem wrapper
-        └── VfsClient.swift     # Generated rapace client
+        └── VfsClient.swift     # Generated roam client
 ```
 
 ## Building
@@ -230,24 +230,24 @@ just check-extension
 
 ## Dependencies
 
-- [rapace](https://github.com/bearcove/rapace) - High-performance RPC
-- [rapace-swift](https://github.com/bearcove/rapace-swift) - Pure Swift rapace client (generated from proto)
-- [facet](https://github.com/facet-rs/facet) - Serialization (used by rapace)
+- [roam](https://github.com/bearcove/roam) - High-performance RPC + Swift runtime/codegen
+- [facet](https://github.com/facet-rs/facet) - Serialization (used by roam)
 
 ## Generating the Swift Client
 
-The `VfsClient.swift` is generated from `fs-kitty-proto` using [rapace-swift-codegen](https://github.com/bearcove/rapace-swift):
+The `VfsClient.swift` files are generated from `fs-kitty-proto` using `roam-codegen`:
 
 ```bash
-# In the rapace-swift repo:
-cd test-harness/fs-kitty-codegen
-cargo run
-# Outputs VfsClient.swift
+# In fs-kitty:
+cargo run -p fs-kitty-codegen
+# Outputs:
+# - swift/FsKitty/Sources/FsKitty/VfsClient.swift
+# - xcode/FsKittyExt/VfsClient.swift
 ```
 
 This generates a pure Swift client with:
 - All VFS types (`LookupResult`, `ReadDirResult`, `ItemAttributes`, etc.)
-- `VfsClient` actor with async methods for all RPC calls
+- `VfsClient` class with async methods for all RPC calls
 - Postcard serialization (varints, zigzag, length-prefixed strings)
 - No FFI, no Rust runtime required
 
