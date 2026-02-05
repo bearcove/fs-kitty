@@ -186,7 +186,7 @@ grep -A3 "^build-xcode:" Justfile | grep configuration
 
 **Symptom**: Extension launches but VFS operations fail with JIT shape mismatches.
 
-**Cause**: Mismatched facet/rapace versions between server and client.
+**Cause**: Mismatched facet/roam versions between server and client.
 
 **Fix**:
 ```bash

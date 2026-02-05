@@ -21,7 +21,8 @@ The FSKit extension is pre-built and distributed as `FsKitty.app`. You just need
 ```toml
 [dependencies]
 fs-kitty-proto = { git = "https://github.com/bearcove/fs-kitty" }
-rapace = { git = "https://github.com/bearcove/rapace" }
+roam = { git = "https://github.com/bearcove/roam" }
+roam-stream = { git = "https://github.com/bearcove/roam" }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -37,40 +38,44 @@ struct MyVfs {
 }
 
 impl Vfs for MyVfs {
-    async fn lookup(&self, parent_id: ItemId, name: String) -> LookupResult {
+    async fn lookup(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String) -> LookupResult {
         // Find item by name in parent directory
         // Return LookupResult with item_id or errno::ENOENT
     }
 
-    async fn get_attributes(&self, item_id: ItemId) -> GetAttributesResult {
+    async fn get_attributes(&self, _cx: &roam::session::Context, item_id: ItemId) -> GetAttributesResult {
         // Return file metadata (size, times, type)
     }
 
-    async fn read_dir(&self, item_id: ItemId, cursor: u64) -> ReadDirResult {
+    async fn read_dir(&self, _cx: &roam::session::Context, item_id: ItemId, cursor: u64) -> ReadDirResult {
         // List directory contents (paginated)
     }
 
-    async fn read(&self, item_id: ItemId, offset: u64, len: u64) -> ReadResult {
+    async fn read(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, len: u64) -> ReadResult {
         // Read file contents
     }
 
-    async fn write(&self, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
+    async fn write(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
         // Write file contents
     }
 
-    async fn create(&self, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult {
+    async fn create(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult {
         // Create new file or directory
     }
 
-    async fn delete(&self, item_id: ItemId) -> VfsResult {
+    async fn delete(&self, _cx: &roam::session::Context, item_id: ItemId) -> VfsResult {
         // Delete file or empty directory
     }
 
-    async fn rename(&self, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult {
+    async fn rename(&self, _cx: &roam::session::Context, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult {
         // Move/rename item
     }
 
-    async fn ping(&self) -> String {
+    async fn set_attributes(&self, _cx: &roam::session::Context, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
+        // Set permissions, timestamps, etc.
+    }
+
+    async fn ping(&self, _cx: &roam::session::Context) -> String {
         "pong".to_string()
     }
 }
@@ -78,17 +83,17 @@ impl Vfs for MyVfs {
 
 ## Step 3: Serve Over TCP
 
-Use rapace to serve your VFS over TCP:
+Use roam-stream to serve your VFS over TCP:
 
 ```rust
-use rapace::RpcSession;
-use std::sync::Arc;
+use fs_kitty_proto::VfsDispatcher;
+use roam_stream::{HandshakeConfig, accept};
 use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:10001").await?;
-    let vfs = Arc::new(MyVfs::new());
+    let vfs = MyVfs::new(); // Must implement Clone
 
     println!("VFS server listening on 127.0.0.1:10001");
 
@@ -96,16 +101,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (socket, peer) = listener.accept().await?;
         println!("Connection from {}", peer);
 
-        let vfs = Arc::clone(&vfs);
+        let vfs = vfs.clone();
         tokio::spawn(async move {
-            let transport = rapace::Transport::stream(socket);
-            let session = Arc::new(RpcSession::new(transport.clone()));
-
-            let vfs_server = VfsServer::new(vfs);
-            session.set_dispatcher(vfs_server.into_session_dispatcher(transport));
-
-            if let Err(e) = session.run().await {
-                eprintln!("Connection error from {}: {}", peer, e);
+            let dispatcher = VfsDispatcher::new(vfs);
+            match accept(socket, HandshakeConfig::default(), dispatcher).await {
+                Ok((_handle, _incoming, driver)) => {
+                    if let Err(e) = driver.run().await {
+                        eprintln!("Connection error from {}: {}", peer, e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Handshake error from {}: {}", peer, e);
+                }
             }
         });
     }
