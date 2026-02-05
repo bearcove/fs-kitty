@@ -26,10 +26,10 @@ final class Item: FSItem {
 // MARK: - Attribute Helpers
 
 extension FSItem.Attributes {
-    /// Create attributes from VFS response
+    /// Create attributes from VFS response using ItemType enum
     static func fromVfs(
         itemId: UInt64,
-        itemType: UInt8,
+        itemType: ItemType,
         size: UInt64,
         modifiedTime: UInt64,
         createdTime: UInt64,
@@ -44,14 +44,12 @@ extension FSItem.Attributes {
 
         // Set type
         switch itemType {
-        case 0: // File
+        case .file:
             attrs.type = .file
-        case 1: // Directory
+        case .directory:
             attrs.type = .directory
-        case 2: // Symlink
+        case .symlink:
             attrs.type = .symlink
-        default:
-            attrs.type = .file
         }
 
         // Set size
