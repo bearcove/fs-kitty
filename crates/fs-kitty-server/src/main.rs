@@ -1,13 +1,13 @@
-//! Spike: rapace VFS server using fs-kitty-proto
+//! Spike: roam VFS server using fs-kitty-proto
 //!
 //! This implements a simple in-memory filesystem for testing.
 
 use fs_kitty_proto::{
     errno, mode, CreateResult, DirEntry, GetAttributesResult, ItemAttributes, ItemId, ItemType,
-    LookupResult, ReadDirResult, ReadResult, SetAttributesParams, Vfs, VfsResult, VfsServer,
+    LookupResult, ReadDirResult, ReadResult, SetAttributesParams, Vfs, VfsDispatcher, VfsResult,
     WriteResult,
 };
-use rapace::RpcSession;
+use roam_stream::{HandshakeConfig, accept};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tokio::net::TcpListener;
@@ -26,9 +26,10 @@ struct FsItem {
 }
 
 /// Simple in-memory VFS implementation
+#[derive(Clone)]
 struct MemoryVfs {
-    items: RwLock<HashMap<ItemId, FsItem>>,
-    next_id: RwLock<ItemId>,
+    items: Arc<RwLock<HashMap<ItemId, FsItem>>>,
+    next_id: Arc<RwLock<ItemId>>,
 }
 
 impl MemoryVfs {
@@ -109,8 +110,8 @@ impl MemoryVfs {
         );
 
         Self {
-            items: RwLock::new(items),
-            next_id: RwLock::new(6),
+            items: Arc::new(RwLock::new(items)),
+            next_id: Arc::new(RwLock::new(6)),
         }
     }
 
@@ -125,7 +126,7 @@ impl MemoryVfs {
 }
 
 impl Vfs for MemoryVfs {
-    async fn lookup(&self, parent_id: ItemId, name: String) -> LookupResult {
+    async fn lookup(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String) -> LookupResult {
         println!("  [server] lookup(parent={}, name={:?})", parent_id, name);
 
         let items = self.items.read().unwrap();
@@ -148,7 +149,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn get_attributes(&self, item_id: ItemId) -> GetAttributesResult {
+    async fn get_attributes(&self, _cx: &roam::session::Context, item_id: ItemId) -> GetAttributesResult {
         println!("  [server] get_attributes({})", item_id);
 
         let items = self.items.read().unwrap();
@@ -187,7 +188,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn read_dir(&self, item_id: ItemId, cursor: u64) -> ReadDirResult {
+    async fn read_dir(&self, _cx: &roam::session::Context, item_id: ItemId, cursor: u64) -> ReadDirResult {
         println!("  [server] read_dir({}, cursor={})", item_id, cursor);
 
         let items = self.items.read().unwrap();
@@ -238,7 +239,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn read(&self, item_id: ItemId, offset: u64, len: u64) -> ReadResult {
+    async fn read(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, len: u64) -> ReadResult {
         println!("  [server] read({}, offset={}, len={})", item_id, offset, len);
 
         let items = self.items.read().unwrap();
@@ -270,7 +271,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn write(&self, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
+    async fn write(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
         println!(
             "  [server] write({}, offset={}, {} bytes)",
             item_id,
@@ -310,7 +311,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn create(&self, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult {
+    async fn create(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult {
         println!(
             "  [server] create(parent={}, name={:?}, type={:?})",
             parent_id, name, item_type
@@ -384,7 +385,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn delete(&self, item_id: ItemId) -> VfsResult {
+    async fn delete(&self, _cx: &roam::session::Context, item_id: ItemId) -> VfsResult {
         println!("  [server] delete({})", item_id);
 
         if item_id == 1 {
@@ -423,7 +424,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn rename(&self, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult {
+    async fn rename(&self, _cx: &roam::session::Context, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult {
         println!(
             "  [server] rename({} -> parent={}, name={:?})",
             item_id, new_parent_id, new_name
@@ -482,7 +483,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn set_attributes(&self, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
+    async fn set_attributes(&self, _cx: &roam::session::Context, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
         println!(
             "  [server] set_attributes({}, mode={:?}, modified_time={:?})",
             item_id, params.mode, params.modified_time
@@ -511,7 +512,7 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn ping(&self) -> String {
+    async fn ping(&self, _cx: &roam::session::Context) -> String {
         println!("  [server] ping()");
         "pong from memory VFS".to_string()
     }
@@ -540,24 +541,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     println!("Waiting for connections...");
 
-    // Shared VFS instance
-    let vfs = Arc::new(MemoryVfs::new());
+    // Shared VFS instance (MemoryVfs is Clone via Arc internals)
+    let vfs = MemoryVfs::new();
 
     loop {
         let (socket, peer_addr) = listener.accept().await?;
         println!("\n[server] New connection from {}", peer_addr);
 
-        let vfs = Arc::clone(&vfs);
+        let vfs = vfs.clone();
         tokio::spawn(async move {
-            let transport = rapace::Transport::stream(socket);
-            let session = Arc::new(RpcSession::new(transport.clone()));
-
-            // Create VFS server
-            let vfs_server = VfsServer::new(vfs);
-            session.set_dispatcher(vfs_server.into_session_dispatcher(transport));
-
-            if let Err(e) = session.run().await {
-                eprintln!("[server] Connection error from {}: {}", peer_addr, e);
+            let dispatcher = VfsDispatcher::new(vfs);
+            match accept(socket, HandshakeConfig::default(), dispatcher).await {
+                Ok((_handle, _incoming, driver)) => {
+                    if let Err(e) = driver.run().await {
+                        eprintln!("[server] Connection error from {}: {}", peer_addr, e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[server] Handshake error from {}: {}", peer_addr, e);
+                }
             }
             println!("[server] Connection from {} closed", peer_addr);
         });

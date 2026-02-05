@@ -10,7 +10,7 @@ path = "src/main.rs"
 [dependencies]
 fs-kitty-proto = { path = "../fs-kitty-proto" }
 tokio.workspace = true
-rapace = { workspace = true, features = ["stream"] }
+roam-stream.workspace = true
 facet.workspace = true
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

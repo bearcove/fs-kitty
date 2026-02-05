@@ -1,11 +1,22 @@
-//! Spike: rapace VFS client using fs-kitty-proto
+//! Spike: roam VFS client using fs-kitty-proto
 //!
 //! This tests the VFS server by performing various filesystem operations.
 
 use fs_kitty_proto::{errno, ItemType, VfsClient};
-use rapace::RpcSession;
-use std::sync::Arc;
+use roam_stream::{Connector, HandshakeConfig, NoDispatcher, connect};
 use tokio::net::TcpStream;
+
+struct TcpConnector {
+    addr: String,
+}
+
+impl Connector for TcpConnector {
+    type Transport = TcpStream;
+
+    async fn connect(&self) -> std::io::Result<TcpStream> {
+        TcpStream::connect(&self.addr).await
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,21 +31,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== fs-kitty VFS Client ===");
     println!("Connecting to {}...", addr);
 
-    let stream = TcpStream::connect(addr).await?;
+    let connector = TcpConnector {
+        addr: addr.to_string(),
+    };
+    let client = connect(connector, HandshakeConfig::default(), NoDispatcher);
+    let vfs = VfsClient::new(client);
+
     println!("Connected!\n");
-
-    let transport = rapace::Transport::stream(stream);
-    let session = Arc::new(RpcSession::new(transport.clone()));
-
-    // Spawn the session demux loop
-    let session_clone = session.clone();
-    tokio::spawn(async move {
-        if let Err(e) = session_clone.run().await {
-            eprintln!("[client] Session error: {}", e);
-        }
-    });
-
-    let vfs = VfsClient::new(session.clone());
 
     // --- Test 1: Ping ---
     println!("--- Test 1: ping() ---");
@@ -56,7 +59,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(result.error, errno::OK);
     println!("Root directory contents:");
     for entry in &result.entries {
-        println!("  {} (id={}, type={:?})", entry.name, entry.item_id, entry.item_type);
+        println!(
+            "  {} (id={}, type={:?})",
+            entry.name, entry.item_id, entry.item_type
+        );
     }
     println!();
 
@@ -96,14 +102,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // --- Test 8: Create a new file ---
     println!("--- Test 8: create(1, \"newfile.txt\", File) ---");
-    let result = vfs.create(1, "newfile.txt".to_string(), ItemType::File).await?;
+    let result = vfs
+        .create(1, "newfile.txt".to_string(), ItemType::File)
+        .await?;
     assert_eq!(result.error, errno::OK);
     let new_id = result.item_id;
     println!("Created newfile.txt with id={}\n", new_id);
 
     // --- Test 9: Write to new file ---
     println!("--- Test 9: write({}, 0, \"Test content\") ---", new_id);
-    let result = vfs.write(new_id, 0, b"Test content from client!".to_vec()).await?;
+    let result = vfs
+        .write(new_id, 0, b"Test content from client!".to_vec())
+        .await?;
     assert_eq!(result.error, errno::OK);
     println!("Wrote {} bytes\n", result.bytes_written);
 
@@ -135,8 +145,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
-    transport.close();
-    println!("Connection closed.");
     println!("\n=== All tests passed! ===");
 
     Ok(())

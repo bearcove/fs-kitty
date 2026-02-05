@@ -12,19 +12,20 @@
 //! struct MyVfs;
 //!
 //! impl Vfs for MyVfs {
-//!     async fn lookup(&self, parent_id: ItemId, name: String) -> LookupResult {
+//!     async fn lookup(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String) -> LookupResult {
 //!         // Your implementation here
 //!         todo!()
 //!     }
 //!     // ... implement other methods
-//! #   async fn get_attributes(&self, item_id: ItemId) -> GetAttributesResult { todo!() }
-//! #   async fn read_dir(&self, item_id: ItemId, cursor: u64) -> ReadDirResult { todo!() }
-//! #   async fn read(&self, item_id: ItemId, offset: u64, len: u64) -> ReadResult { todo!() }
-//! #   async fn write(&self, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult { todo!() }
-//! #   async fn create(&self, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult { todo!() }
-//! #   async fn delete(&self, item_id: ItemId) -> VfsResult { todo!() }
-//! #   async fn rename(&self, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult { todo!() }
-//! #   async fn ping(&self) -> String { todo!() }
+//! #   async fn get_attributes(&self, _cx: &roam::session::Context, item_id: ItemId) -> GetAttributesResult { todo!() }
+//! #   async fn read_dir(&self, _cx: &roam::session::Context, item_id: ItemId, cursor: u64) -> ReadDirResult { todo!() }
+//! #   async fn read(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, len: u64) -> ReadResult { todo!() }
+//! #   async fn write(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult { todo!() }
+//! #   async fn create(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult { todo!() }
+//! #   async fn delete(&self, _cx: &roam::session::Context, item_id: ItemId) -> VfsResult { todo!() }
+//! #   async fn rename(&self, _cx: &roam::session::Context, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult { todo!() }
+//! #   async fn set_attributes(&self, _cx: &roam::session::Context, item_id: ItemId, params: SetAttributesParams) -> VfsResult { todo!() }
+//! #   async fn ping(&self, _cx: &roam::session::Context) -> String { todo!() }
 //! }
 //! ```
 //!
