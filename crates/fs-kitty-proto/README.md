@@ -103,9 +103,7 @@ Then install the FSKit extension and mount:
 cargo run
 
 # Mount the filesystem
-mkfile -n 100m /tmp/test.dmg
-hdiutil attach -nomount /tmp/test.dmg
-mount -t fskitty /dev/diskN ~/mountpoint
+mount -t fskitty fskitty://localhost:10001 ~/mountpoint
 ```
 
 ## Protocol Overview

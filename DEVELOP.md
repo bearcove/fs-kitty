@@ -23,14 +23,9 @@ open /Applications/FsKitty.app
 # Start the VFS server
 just server
 
-# Create a test disk image
-mkfile -n 100m /tmp/fskitty.dmg
-hdiutil attach -nomount /tmp/fskitty.dmg
-# Note the device name (e.g., /dev/disk4)
-
 # Mount the filesystem
 mkdir -p ~/fskitty
-mount -v -F -t fskitty /dev/disk4 ~/fskitty
+mount -t fskitty fskitty://localhost:10001 ~/fskitty
 
 # Watch logs in another terminal
 just logs
@@ -38,7 +33,7 @@ just logs
 
 ## Troubleshooting: Extension Won't Launch
 
-When you run `mount -v -F -t fskitty /dev/diskN /mount/point` and it **hangs** with no extension process spawning, try these fixes in order of increasing violence:
+When you run `mount -t fskitty fskitty://host:port /mount/point` and it **hangs** with no extension process spawning, try these fixes in order of increasing violence:
 
 ### 1. Verify Extension Registration (Gentlest)
 
@@ -81,20 +76,14 @@ Then try mounting again. **Once this works, unmount/remount cycles work reliably
 
 This is the most reliable workaround - start your development session by killing the daemons once, then everything works smoothly.
 
-### 4. Force Detach and Reattach Disk
+### 4. Use a Fresh Mount Point
 
-The disk resource may be in a bad state:
+Stale mount points can hold bad state:
 
 ```bash
-# Force detach
-sudo hdiutil detach /dev/diskN -force
-
-# Reattach to get a fresh device
-hdiutil attach -nomount /tmp/fskitty.dmg
-# Note the NEW device name
-
-# Try mounting the new device
-mount -v -F -t fskitty /dev/diskNEW ~/fskitty
+umount ~/fskitty || true
+mkdir -p ~/fskitty-new
+mount -t fskitty fskitty://localhost:10001 ~/fskitty-new
 ```
 
 ### 5. Clean Build
@@ -158,19 +147,19 @@ After reboot, rebuild and reinstall everything from scratch.
 
 **Fix**: Try solutions #3 (restart daemons) or #6 (clear network cache).
 
-### "Resource busy" When Detaching Disk
+### "Resource busy" During Unmount
 
-**Symptom**: `hdiutil detach /dev/diskN` fails with "Resource busy"
+**Symptom**: `umount` fails with "Resource busy"
 
-**Cause**: Hanging mount process holding the disk.
+**Cause**: Hanging mount process holding the mountpoint.
 
 **Fix**:
 ```bash
 # Kill hanging mount processes
 killall mount
 
-# Force detach
-sudo hdiutil detach /dev/diskN -force
+# Force unmount
+diskutil unmount force ~/fskitty
 ```
 
 ### Wrong Build Configuration

@@ -77,7 +77,7 @@ fs-kitty/
 
 ### Prerequisites
 
-- macOS 26+ (Tahoe) for URL-based mounting, or macOS 15.4+ with block device workaround
+- macOS 26+ (Tahoe) for URL-based mounting
 - Xcode 16+
 - Rust toolchain
 - [just](https://github.com/casey/just) command runner

@@ -64,7 +64,7 @@ Actions (in order):
 1. Re-enable extension in System Settings.
 2. Restart FSKit daemons:
    - `sudo killall fskitd fskit_agent`
-3. Retry mount with a fresh disk device if relevant.
+3. Retry mount with a fresh mount point.
 4. If killall itself hangs, reboot and return to baseline validation.
 
 ### Symptom: no `FsKittyExt` process ever appears
