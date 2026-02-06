@@ -19,13 +19,15 @@ open /Applications/FsKitty.app
 
 ## Testing
 
+**Mount points go under `~/.fs-kitty/`**, never directly in `~/`. If the extension hangs with a mount in `~/`, shells can't open (they stat `~` on startup and block on the dead mount).
+
 ```bash
 # Start the VFS server
 just server
 
 # Mount the filesystem
-mkdir -p ~/fskitty
-mount -t fskitty fskitty://localhost:10001 ~/fskitty
+mkdir -p ~/.fs-kitty/mnt
+mount -t fskitty fskitty://localhost:10001 ~/.fs-kitty/mnt
 
 # Watch logs in another terminal
 just logs
@@ -81,9 +83,9 @@ This is the most reliable workaround - start your development session by killing
 Stale mount points can hold bad state:
 
 ```bash
-umount ~/fskitty || true
-mkdir -p ~/fskitty-new
-mount -t fskitty fskitty://localhost:10001 ~/fskitty-new
+umount ~/.fs-kitty/mnt || true
+mkdir -p ~/.fs-kitty/mnt2
+mount -t fskitty fskitty://localhost:10001 ~/.fs-kitty/mnt2
 ```
 
 ### 5. Clean Build
@@ -159,7 +161,7 @@ After reboot, rebuild and reinstall everything from scratch.
 killall mount
 
 # Force unmount
-diskutil unmount force ~/fskitty
+diskutil unmount force ~/.fs-kitty/mnt
 ```
 
 ### Wrong Build Configuration

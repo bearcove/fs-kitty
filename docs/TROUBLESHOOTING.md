@@ -18,9 +18,13 @@ If your machine is already hanging, skip straight to **Emergency Recovery**.
 If commands hang and apps stop opening:
 
 1. Stop running new FSKit commands.
-2. Reboot immediately.
-3. If `sudo reboot` hangs, use UI restart.
-4. If UI restart hangs, do a hard power cycle.
+2. **Try disabling the extension first** (no reboot needed):
+   - System Settings → Login Items & Extensions → scroll to Extensions → By Category → File System Providers → (i) → toggle `fs-kitty` off.
+   - This tells macOS to stop routing VFS operations through the dead extension, unblocking all stuck processes.
+   - Once responsive, `sudo killall fskitd fskit_agent` should work.
+3. If the UI is too unresponsive for Settings, reboot.
+4. If `sudo reboot` hangs, use UI restart.
+5. If UI restart hangs, do a hard power cycle.
 
 After reboot:
 

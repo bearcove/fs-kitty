@@ -21,7 +21,8 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 fs-kitty-proto = { git = "https://github.com/bearcove/fs-kitty" }
-rapace = { git = "https://github.com/bearcove/rapace" }
+roam = { git = "https://github.com/bearcove/roam" }
+roam-stream = { git = "https://github.com/bearcove/roam" }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -66,29 +67,31 @@ impl Vfs for MyVfs {
 Serve it over TCP:
 
 ```rust
-use rapace::RpcSession;
-use std::sync::Arc;
+use fs_kitty_proto::VfsDispatcher;
+use roam_stream::{HandshakeConfig, accept};
 use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:10001").await?;
-    let vfs = Arc::new(MyVfs::new());
+    let vfs = MyVfs::new(); // Must implement Clone
 
     loop {
         let (socket, peer) = listener.accept().await?;
         println!("New connection from {}", peer);
 
-        let vfs = Arc::clone(&vfs);
+        let vfs = vfs.clone();
         tokio::spawn(async move {
-            let transport = rapace::Transport::stream(socket);
-            let session = Arc::new(RpcSession::new(transport.clone()));
-
-            let vfs_server = VfsServer::new(vfs);
-            session.set_dispatcher(vfs_server.into_session_dispatcher(transport));
-
-            if let Err(e) = session.run().await {
-                eprintln!("Connection error: {}", e);
+            let dispatcher = VfsDispatcher::new(vfs);
+            match accept(socket, HandshakeConfig::default(), dispatcher).await {
+                Ok((_handle, _incoming, driver)) => {
+                    if let Err(e) = driver.run().await {
+                        eprintln!("Connection error from {}: {}", peer, e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Handshake error from {}: {}", peer, e);
+                }
             }
         });
     }
@@ -103,7 +106,7 @@ Then install the FSKit extension and mount:
 cargo run
 
 # Mount the filesystem
-mount -t fskitty fskitty://localhost:10001 ~/mountpoint
+mount -t fskitty fskitty://localhost:10001 ~/.fs-kitty/mnt
 ```
 
 ## Protocol Overview
@@ -247,4 +250,4 @@ impl Vfs for MyVfs {
 
 - [fs-kitty](https://github.com/bearcove/fs-kitty) - Main repository with FSKit extension
 - [fs-kitty-server](../fs-kitty-server) - Example in-memory VFS implementation
-- [rapace](https://github.com/bearcove/rapace) - RPC framework
+- [roam](https://github.com/bearcove/roam) - RPC framework

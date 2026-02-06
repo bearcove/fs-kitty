@@ -25,7 +25,7 @@ Troubleshooting:
 └─────────────────┼───────────────────────────────────────────┘
                   │ TCP (roam protocol)
 ┌─────────────────▼───────────────────────────────────────────┐
-│  Your Rust VFS App (rapace server)                          │
+│  Your Rust VFS App (roam server)                            │
 │  (implements actual filesystem logic)                        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -202,18 +202,18 @@ open /Applications/FsKitty.app
 just server
 
 # 4. Create mount point
-sudo mkdir -p /Volumes/FsKitty
+mkdir -p ~/.fs-kitty/mnt
 
 # 5. Mount using fskitty:// URL
-mount -t fskitty fskitty://localhost:10001 /Volumes/FsKitty
+mount -t fskitty fskitty://localhost:10001 ~/.fs-kitty/mnt
 
 # 6. Use it!
-ls /Volumes/FsKitty
-echo "hello" > /Volumes/FsKitty/test.txt
-cat /Volumes/FsKitty/test.txt
+ls ~/.fs-kitty/mnt
+echo "hello" > ~/.fs-kitty/mnt/test.txt
+cat ~/.fs-kitty/mnt/test.txt
 
 # 7. Unmount when done
-umount /Volumes/FsKitty
+umount ~/.fs-kitty/mnt
 ```
 
 The URL format is `fskitty://host:port` (port defaults to 10001 if omitted).
@@ -254,6 +254,33 @@ This generates a pure Swift client with:
 - `VfsClient` class with async methods for all RPC calls
 - Postcard serialization (varints, zigzag, length-prefixed strings)
 - No FFI, no Rust runtime required
+
+## Sponsors
+
+Thanks to all individual sponsors:
+
+<p> <a href="https://github.com/sponsors/fasterthanlime">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/github-dark.svg">
+<img src="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/github-light.svg" height="40" alt="GitHub Sponsors">
+</picture>
+</a> <a href="https://patreon.com/fasterthanlime">
+    <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/patreon-dark.svg">
+    <img src="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/patreon-light.svg" height="40" alt="Patreon">
+    </picture>
+</a> </p>
+
+...along with corporate sponsors:
+
+<p> <a href="https://depot.dev?utm_source=fs-kitty">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/depot-dark.svg">
+<img src="https://github.com/facet-rs/facet/raw/main/static/sponsors-v3/depot-light.svg" height="40" alt="Depot">
+</picture>
+</a> </p>
+
+...without whom this work could not exist.
 
 ## License
 
