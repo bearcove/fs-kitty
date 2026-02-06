@@ -24,10 +24,8 @@ func main() async {
         // Connect to VFS server and establish roam session
         print("Connecting to VFS server at 127.0.0.1:10001...")
         let transport = try await connect(host: "127.0.0.1", port: 10001)
-        let hello = Hello.v3(maxPayloadSize: 1024 * 1024, initialChannelCredit: 64 * 1024)
         let (handle, driver) = try await establishInitiator(
             transport: transport,
-            ourHello: hello,
             dispatcher: NoopDispatcher()
         )
         let driverTask = Task {

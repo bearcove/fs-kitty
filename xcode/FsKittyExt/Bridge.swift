@@ -44,10 +44,8 @@ actor VfsConnection {
         log.info("Connecting to \(host):\(port)")
 
         let transport = try await RoamRuntime.connect(host: host, port: port)
-        let hello = Hello.v3(maxPayloadSize: 1024 * 1024, initialChannelCredit: 64 * 1024)
         let (handle, driver) = try await establishInitiator(
             transport: transport,
-            ourHello: hello,
             dispatcher: NoopDispatcher()
         )
 
