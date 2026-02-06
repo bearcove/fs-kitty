@@ -17,10 +17,6 @@ final class Volume: FSVolume {
         let volumeId = FSVolume.Identifier(uuid: UUID())
         let volumeName = FSFileName(string: "FsKitty")
         super.init(volumeID: volumeId, volumeName: volumeName)
-        Task {
-            await LifecycleTrace.shared.mark(
-                self.log, event: "volume.init", details: "volumeID=\(self.volumeID)")
-        }
     }
 
     // MARK: - Item Cache

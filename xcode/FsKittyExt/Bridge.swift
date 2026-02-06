@@ -13,10 +13,11 @@ actor LifecycleTrace {
     func mark(_ logger: Logger, event: String, details: String = "") {
         sequence += 1
         if details.isEmpty {
-            logger.notice("lifecycle[\(sequence)] \(event, privacy: .public)")
+            logger.notice("lifecycle[\(self.sequence)] \(event, privacy: .public)")
         } else {
             logger.notice(
-                "lifecycle[\(sequence)] \(event, privacy: .public) \(details, privacy: .public)")
+                "lifecycle[\(self.sequence)] \(event, privacy: .public) \(details, privacy: .public)"
+            )
         }
     }
 }
@@ -160,6 +161,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         replyHandler: @escaping (FSProbeResult?, (any Error)?) -> Void
     ) {
         log.info("probeResource")
+        let resourceDescription = describe(resource: resource)
 
         // Extract server address from URL resource
         guard let address = extractServerAddress(from: resource) else {
@@ -172,7 +174,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         Task {
             await LifecycleTrace.shared.mark(
                 self.log, event: "bridge.probeResource.begin",
-                details: self.describe(resource: resource))
+                details: resourceDescription)
             do {
                 try await VfsConnection.shared.connect(address: address)
 
@@ -183,7 +185,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
                 )
                 await LifecycleTrace.shared.mark(
                     self.log, event: "bridge.probeResource.success",
-                    details: self.describe(resource: resource))
+                    details: resourceDescription)
                 sendable.handler(result, nil)
             } catch {
                 self.log.error("probeResource FAILED: \(error.localizedDescription)")
@@ -202,6 +204,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         replyHandler: @escaping (FSVolume?, (any Error)?) -> Void
     ) {
         log.info("loadResource")
+        let resourceDescription = describe(resource: resource)
 
         // Extract server address from URL resource
         guard let address = extractServerAddress(from: resource) else {
@@ -214,7 +217,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         Task {
             await LifecycleTrace.shared.mark(
                 self.log, event: "bridge.loadResource.begin",
-                details: self.describe(resource: resource))
+                details: resourceDescription)
             do {
                 try await VfsConnection.shared.connect(address: address)
 
@@ -222,7 +225,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
                 self.containerStatus = .ready
                 await LifecycleTrace.shared.mark(
                     self.log, event: "bridge.loadResource.success",
-                    details: self.describe(resource: resource))
+                    details: resourceDescription)
                 sendable.handler(volume, nil)
             } catch {
                 self.log.error("loadResource FAILED: \(error.localizedDescription)")
@@ -241,11 +244,12 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         replyHandler reply: @escaping ((any Error)?) -> Void
     ) {
         log.info("unloadResource")
+        let resourceDescription = describe(resource: resource)
         let sendable = SendableVoidReplyHandler(handler: reply)
         Task {
             await LifecycleTrace.shared.mark(
                 self.log, event: "bridge.unloadResource.begin",
-                details: self.describe(resource: resource))
+                details: resourceDescription)
             await VfsConnection.shared.disconnect()
             // FSUnaryFileSystem unload callback is where we finish the transition back
             // to notReady for this unary container/resource pair.
@@ -254,7 +258,7 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
                     domain: NSPOSIXErrorDomain, code: Int(POSIXError.ENOTCONN.rawValue)))
             await LifecycleTrace.shared.mark(
                 self.log, event: "bridge.unloadResource.done",
-                details: self.describe(resource: resource))
+                details: resourceDescription)
             sendable.handler(nil)
         }
     }

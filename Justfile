@@ -5,15 +5,15 @@ default:
     just --list
 
 # Build everything (Rust server + Xcode app)
-build: build-rust build-xcode
+build: rust-build xcode-build
     @echo "Build complete! Output in build/"
 
 # Build Rust components (server, client, proto)
-build-rust:
+rust-build:
     cargo build --release
 
 # Build the Xcode project (Release config - Debug stub doesn't work with ExtensionKit)
-build-xcode: xcode-gen
+xcode-build: xcode-gen
     mkdir -p build
     xcodebuild -project xcode/FsKitty.xcodeproj \
         -scheme FsKitty \
@@ -22,17 +22,6 @@ build-xcode: xcode-gen
         build \
         SYMROOT="$(pwd)/build"
     @echo "FsKitty.app is at build/Release/FsKitty.app"
-
-# Build debug configuration (WARNING: Debug stub doesn't work with ExtensionKit!)
-build-debug: xcode-gen
-    mkdir -p build
-    xcodebuild -project xcode/FsKitty.xcodeproj \
-        -scheme FsKitty \
-        -configuration Debug \
-        -allowProvisioningUpdates \
-        build \
-        SYMROOT="$(pwd)/build"
-    @echo "FsKitty.app is at build/Debug/FsKitty.app (won't launch as extension!)"
 
 # Clean build artifacts
 clean:
