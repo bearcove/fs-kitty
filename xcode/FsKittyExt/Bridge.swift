@@ -1,9 +1,25 @@
 import FSKit
 import Foundation
-import os
 import RoamRuntime
+import os
 
 extension VfsClient: @unchecked Sendable {}
+
+actor LifecycleTrace {
+    static let shared = LifecycleTrace()
+
+    private var sequence: UInt64 = 0
+
+    func mark(_ logger: Logger, event: String, details: String = "") {
+        sequence += 1
+        if details.isEmpty {
+            logger.notice("lifecycle[\(sequence)] \(event, privacy: .public)")
+        } else {
+            logger.notice(
+                "lifecycle[\(sequence)] \(event, privacy: .public) \(details, privacy: .public)")
+        }
+    }
+}
 
 final class NoopDispatcher: ServiceDispatcher, @unchecked Sendable {
     func preregister(methodId: UInt64, payload: [UInt8], registry: ChannelRegistry) async {}
@@ -25,6 +41,7 @@ actor VfsConnection {
 
     private var client: VfsClient?
     private var driverTask: Task<Void, Never>?
+    private var disconnectRequested = false
     private let log = Logger(subsystem: "me.amos.fs-kitty.ext", category: "VfsConnection")
 
     func connect(address: String) async throws {
@@ -32,12 +49,17 @@ actor VfsConnection {
             log.info("Already connected")
             return
         }
+        await LifecycleTrace.shared.mark(
+            log, event: "vfs.connect.begin", details: "address=\(address)")
 
         // Parse host:port
         let parts = address.split(separator: ":")
         guard parts.count == 2,
-              let port = Int(parts[1]) else {
-            throw NSError(domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid address format: \(address)"])
+            let port = Int(parts[1])
+        else {
+            throw NSError(
+                domain: "VFS", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid address format: \(address)"])
         }
 
         let host = String(parts[0])
@@ -49,22 +71,28 @@ actor VfsConnection {
             dispatcher: NoopDispatcher()
         )
 
+        disconnectRequested = false
         let logger = log
-        driverTask = Task {
+        driverTask = Task { [weak self] in
             do {
                 try await driver.run()
                 logger.error("Roam driver exited cleanly — server is gone")
             } catch {
                 logger.error("Roam driver exited with error: \(error.localizedDescription)")
             }
-            logger.error("Connection to VFS server lost, terminating extension")
-            exit(0)
+            await self?.handleDriverExit()
         }
         client = VfsClient(connection: handle)
         log.info("Connected to \(address)")
+        await LifecycleTrace.shared.mark(
+            log, event: "vfs.connect.ready", details: "address=\(address)")
     }
 
     func disconnect() {
+        Task {
+            await LifecycleTrace.shared.mark(log, event: "vfs.disconnect")
+        }
+        disconnectRequested = true
         driverTask?.cancel()
         driverTask = nil
         client = nil
@@ -72,9 +100,26 @@ actor VfsConnection {
 
     func getClient() throws -> VfsClient {
         guard let client = client else {
-            throw NSError(domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected"])
+            throw NSError(
+                domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected"])
         }
         return client
+    }
+
+    private func handleDriverExit() {
+        if disconnectRequested {
+            log.info("VFS connection closed during normal unload")
+            Task {
+                await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.normal")
+            }
+        } else {
+            log.error("Connection to VFS server lost; waiting for FSKit to unload/deactivate")
+            Task {
+                await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.unexpected")
+            }
+        }
+        client = nil
+        driverTask = nil
     }
 }
 
@@ -118,6 +163,9 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
 
         let sendable = SendableReplyHandler(handler: replyHandler)
         Task {
+            await LifecycleTrace.shared.mark(
+                self.log, event: "bridge.probeResource.begin",
+                details: self.describe(resource: resource))
             do {
                 try await VfsConnection.shared.connect(address: address)
 
@@ -126,9 +174,15 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
                     name: "FsKitty",
                     containerID: FSContainerIdentifier(uuid: containerUUID)
                 )
+                await LifecycleTrace.shared.mark(
+                    self.log, event: "bridge.probeResource.success",
+                    details: self.describe(resource: resource))
                 sendable.handler(result, nil)
             } catch {
                 self.log.error("probeResource FAILED: \(error.localizedDescription)")
+                await LifecycleTrace.shared.mark(
+                    self.log, event: "bridge.probeResource.failure",
+                    details: "error=\(error.localizedDescription)")
                 sendable.handler(nil, nil)
             }
         }
@@ -151,14 +205,23 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
 
         let sendable = SendableReplyHandler(handler: replyHandler)
         Task {
+            await LifecycleTrace.shared.mark(
+                self.log, event: "bridge.loadResource.begin",
+                details: self.describe(resource: resource))
             do {
                 try await VfsConnection.shared.connect(address: address)
 
                 let volume = Volume()
                 self.containerStatus = .ready
+                await LifecycleTrace.shared.mark(
+                    self.log, event: "bridge.loadResource.success",
+                    details: self.describe(resource: resource))
                 sendable.handler(volume, nil)
             } catch {
                 self.log.error("loadResource FAILED: \(error.localizedDescription)")
+                await LifecycleTrace.shared.mark(
+                    self.log, event: "bridge.loadResource.failure",
+                    details: "error=\(error.localizedDescription)")
                 sendable.handler(nil, fs_errorForPOSIXError(POSIXError.EIO.rawValue))
             }
         }
@@ -173,7 +236,16 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
         log.info("unloadResource")
         let sendable = SendableVoidReplyHandler(handler: reply)
         Task {
+            await LifecycleTrace.shared.mark(
+                self.log, event: "bridge.unloadResource.begin",
+                details: self.describe(resource: resource))
             await VfsConnection.shared.disconnect()
+            self.containerStatus = .notReady(
+                status: NSError(
+                    domain: NSPOSIXErrorDomain, code: Int(POSIXError.ENOTCONN.rawValue)))
+            await LifecycleTrace.shared.mark(
+                self.log, event: "bridge.unloadResource.done",
+                details: self.describe(resource: resource))
             sendable.handler(nil)
         }
     }
@@ -181,6 +253,9 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
     /// Called after loading completes
     func didFinishLoading() {
         log.info("didFinishLoading")
+        Task {
+            await LifecycleTrace.shared.mark(self.log, event: "bridge.didFinishLoading")
+        }
     }
 
     // MARK: - URL Resource Handling
@@ -204,5 +279,12 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
 
         let port = url.port ?? 10001
         return "\(host):\(port)"
+    }
+
+    private func describe(resource: FSResource) -> String {
+        if let urlResource = resource as? FSGenericURLResource {
+            return "url=\(urlResource.url.absoluteString)"
+        }
+        return "resourceType=\(String(describing: type(of: resource)))"
     }
 }

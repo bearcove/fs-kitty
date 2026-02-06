@@ -17,6 +17,10 @@ final class Volume: FSVolume {
         let volumeId = FSVolume.Identifier(uuid: UUID())
         let volumeName = FSFileName(string: "FsKitty")
         super.init(volumeID: volumeId, volumeName: volumeName)
+        Task {
+            await LifecycleTrace.shared.mark(
+                self.log, event: "volume.init", details: "volumeID=\(self.volumeID)")
+        }
     }
 
     // MARK: - Item Cache
@@ -35,9 +39,11 @@ final class Volume: FSVolume {
 
     // MARK: - VFS Client Access
 
-    private static let rpcTimeout: UInt64 = 5_000_000_000 // 5 seconds in nanoseconds
+    private static let rpcTimeout: UInt64 = 5_000_000_000  // 5 seconds in nanoseconds
 
-    private func vfsCall<T: Sendable>(_ operation: String, _ body: @escaping @Sendable (VfsClient) async throws -> T) async throws -> T {
+    private func vfsCall<T: Sendable>(
+        _ operation: String, _ body: @escaping @Sendable (VfsClient) async throws -> T
+    ) async throws -> T {
         let vfsClient = try await VfsConnection.shared.getClient()
         do {
             return try await withThrowingTaskGroup(of: T.self) { group in
@@ -88,12 +94,18 @@ extension Volume: FSVolume.Operations {
 
     func mount(options: FSTaskOptions) async throws {
         log.debug("mount")
+        await LifecycleTrace.shared.mark(log, event: "volume.mount.begin")
         // Connection is already established in Bridge.loadResource
+        Bridge.shared.containerStatus = .active
+        await LifecycleTrace.shared.mark(log, event: "volume.mount.done")
     }
 
     func unmount() async {
         log.debug("unmount")
+        await LifecycleTrace.shared.mark(log, event: "volume.unmount.begin")
         items.removeAll()
+        Bridge.shared.containerStatus = .ready
+        await LifecycleTrace.shared.mark(log, event: "volume.unmount.done")
     }
 
     func synchronize(flags: FSSyncFlags) async throws {
@@ -103,6 +115,7 @@ extension Volume: FSVolume.Operations {
 
     func activate(options: FSTaskOptions) async throws -> FSItem {
         log.debug("activate - returning root item")
+        await LifecycleTrace.shared.mark(log, event: "volume.activate.begin")
 
         let rootId = self.rootId
         let result = try await vfsCall("activate") { client in
@@ -129,12 +142,18 @@ extension Volume: FSVolume.Operations {
 
         let root = Item(itemId: rootId, name: "", attributes: rootAttrs)
         cacheItem(root)
+        await LifecycleTrace.shared.mark(
+            log, event: "volume.activate.done", details: "rootId=\(rootId)")
         return root
     }
 
     func deactivate(options: FSDeactivateOptions = []) async throws {
         log.debug("deactivate")
+        await LifecycleTrace.shared.mark(
+            log, event: "volume.deactivate.begin", details: "options=\(options.rawValue)")
         items.removeAll()
+        Bridge.shared.containerStatus = .ready
+        await LifecycleTrace.shared.mark(log, event: "volume.deactivate.done")
     }
 
     func attributes(
@@ -469,7 +488,7 @@ extension Volume: FSVolume.PathConfOperations {
 extension Volume: FSVolume.OpenCloseOperations {
     var isOpenCloseInhibited: Bool {
         get { true }  // We don't track open/close state
-        set { }
+        set {}
     }
 
     func openItem(_ item: FSItem, modes: FSVolume.OpenModes) async throws {
@@ -486,7 +505,7 @@ extension Volume: FSVolume.OpenCloseOperations {
 extension Volume: FSVolume.AccessCheckOperations {
     var isAccessCheckInhibited: Bool {
         get { true }  // Allow all access for now
-        set { }
+        set {}
     }
 
     func checkAccess(
