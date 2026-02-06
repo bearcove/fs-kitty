@@ -1,7 +1,8 @@
 # fs-kitty build recipes
 
-# Default recipe - build everything
-default: build
+# Default recipe: list
+default:
+    just --list
 
 # Build everything (Rust server + Xcode app)
 build: build-rust build-xcode
