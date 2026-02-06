@@ -1,5 +1,8 @@
 # fs-kitty Development Guide
 
+For system-hang and recovery procedures, see:
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+
 ## Building
 
 The extension requires Release configuration because Debug builds use a stub executable structure that ExtensionKit cannot launch:

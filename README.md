@@ -2,6 +2,10 @@
 
 A Rust-first FSKit file system extension for macOS. Own every line of code.
 
+Troubleshooting:
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- [`DEVELOP.md`](DEVELOP.md)
+
 **Built for [vixen](https://github.com/bearcove/vixen)** - a hermetic Rust build system. fs-kitty enables:
 1. **Build hermeticity** - Control exactly what goes in and out of a build
 2. **On-the-fly materialization** - Provide proc-macro inputs and other requirements that aren't statically declared
