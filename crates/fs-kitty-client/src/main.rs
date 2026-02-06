@@ -2,7 +2,7 @@
 //!
 //! This tests the VFS server by performing various filesystem operations.
 
-use fs_kitty_proto::{errno, ItemType, VfsClient};
+use fs_kitty_proto::{ItemType, VfsClient, errno};
 use roam_stream::{Connector, HandshakeConfig, NoDispatcher, connect};
 use tokio::net::TcpStream;
 

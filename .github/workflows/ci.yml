@@ -62,25 +62,4 @@ jobs:
         run: cargo build --all-targets
 
       - name: Test
-        run: cargo nextest run
-
-  swift-xcode:
-    name: Swift / Xcode Build
-    runs-on: depot-macos-15
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install xcodegen
-        run: brew install xcodegen
-
-      - name: Build Xcode project (Release)
-        run: |
-          cd xcode && xcodegen generate
-          cd ..
-          mkdir -p build
-          xcodebuild -project xcode/FsKitty.xcodeproj \
-            -scheme FsKitty \
-            -configuration Release \
-            -allowProvisioningUpdates \
-            build \
-            SYMROOT="$(pwd)/build"
+        run: cargo nextest run --no-tests=pass

@@ -3,9 +3,9 @@
 //! This implements a simple in-memory filesystem for testing.
 
 use fs_kitty_proto::{
-    errno, mode, CreateResult, DirEntry, GetAttributesResult, ItemAttributes, ItemId, ItemType,
-    LookupResult, ReadDirResult, ReadResult, SetAttributesParams, Vfs, VfsDispatcher, VfsResult,
-    WriteResult,
+    CreateResult, DirEntry, GetAttributesResult, ItemAttributes, ItemId, ItemType, LookupResult,
+    ReadDirResult, ReadResult, SetAttributesParams, Vfs, VfsDispatcher, VfsResult, WriteResult,
+    errno, mode,
 };
 use roam_stream::{HandshakeConfig, accept};
 use std::collections::HashMap;
@@ -126,7 +126,12 @@ impl MemoryVfs {
 }
 
 impl Vfs for MemoryVfs {
-    async fn lookup(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String) -> LookupResult {
+    async fn lookup(
+        &self,
+        _cx: &roam::session::Context,
+        parent_id: ItemId,
+        name: String,
+    ) -> LookupResult {
         println!("  [server] lookup(parent={}, name={:?})", parent_id, name);
 
         let items = self.items.read().unwrap();
@@ -149,16 +154,17 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn get_attributes(&self, _cx: &roam::session::Context, item_id: ItemId) -> GetAttributesResult {
+    async fn get_attributes(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+    ) -> GetAttributesResult {
         println!("  [server] get_attributes({})", item_id);
 
         let items = self.items.read().unwrap();
         match items.get(&item_id) {
             Some(item) => {
-                println!(
-                    "  [server] -> found {:?} (mode={:o})",
-                    item.name, item.mode
-                );
+                println!("  [server] -> found {:?} (mode={:o})", item.name, item.mode);
                 GetAttributesResult {
                     attrs: ItemAttributes {
                         item_id: item.id,
@@ -188,7 +194,12 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn read_dir(&self, _cx: &roam::session::Context, item_id: ItemId, cursor: u64) -> ReadDirResult {
+    async fn read_dir(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+        cursor: u64,
+    ) -> ReadDirResult {
         println!("  [server] read_dir({}, cursor={})", item_id, cursor);
 
         let items = self.items.read().unwrap();
@@ -239,8 +250,17 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn read(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, len: u64) -> ReadResult {
-        println!("  [server] read({}, offset={}, len={})", item_id, offset, len);
+    async fn read(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+        offset: u64,
+        len: u64,
+    ) -> ReadResult {
+        println!(
+            "  [server] read({}, offset={}, len={})",
+            item_id, offset, len
+        );
 
         let items = self.items.read().unwrap();
         match items.get(&item_id) {
@@ -271,7 +291,13 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn write(&self, _cx: &roam::session::Context, item_id: ItemId, offset: u64, data: Vec<u8>) -> WriteResult {
+    async fn write(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+        offset: u64,
+        data: Vec<u8>,
+    ) -> WriteResult {
         println!(
             "  [server] write({}, offset={}, {} bytes)",
             item_id,
@@ -311,7 +337,13 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn create(&self, _cx: &roam::session::Context, parent_id: ItemId, name: String, item_type: ItemType) -> CreateResult {
+    async fn create(
+        &self,
+        _cx: &roam::session::Context,
+        parent_id: ItemId,
+        name: String,
+        item_type: ItemType,
+    ) -> CreateResult {
         println!(
             "  [server] create(parent={}, name={:?}, type={:?})",
             parent_id, name, item_type
@@ -397,16 +429,15 @@ impl Vfs for MemoryVfs {
 
         let mut items = self.items.write().unwrap();
 
-        // Check if directory is empty
-        if let Some(item) = items.get(&item_id) {
-            if item.item_type == ItemType::Directory {
-                let has_children = items.values().any(|i| i.parent_id == item_id);
-                if has_children {
-                    println!("  [server] -> directory not empty");
-                    return VfsResult {
-                        error: errno::ENOTEMPTY,
-                    };
-                }
+        if let Some(item) = items.get(&item_id)
+            && item.item_type == ItemType::Directory
+        {
+            let has_children = items.values().any(|i| i.parent_id == item_id);
+            if has_children {
+                println!("  [server] -> directory not empty");
+                return VfsResult {
+                    error: errno::ENOTEMPTY,
+                };
             }
         }
 
@@ -424,7 +455,13 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn rename(&self, _cx: &roam::session::Context, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult {
+    async fn rename(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+        new_parent_id: ItemId,
+        new_name: String,
+    ) -> VfsResult {
         println!(
             "  [server] rename({} -> parent={}, name={:?})",
             item_id, new_parent_id, new_name
@@ -483,7 +520,12 @@ impl Vfs for MemoryVfs {
         }
     }
 
-    async fn set_attributes(&self, _cx: &roam::session::Context, item_id: ItemId, params: SetAttributesParams) -> VfsResult {
+    async fn set_attributes(
+        &self,
+        _cx: &roam::session::Context,
+        item_id: ItemId,
+        params: SetAttributesParams,
+    ) -> VfsResult {
         println!(
             "  [server] set_attributes({}, mode={:?}, modified_time={:?})",
             item_id, params.mode, params.modified_time
