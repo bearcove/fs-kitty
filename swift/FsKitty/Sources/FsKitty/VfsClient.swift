@@ -17,7 +17,6 @@ public enum VfsMethodId {
     public static let rename: UInt64 = 0x4d68b4b3208a8c07
     public static let setAttributes: UInt64 = 0x5dcd5793362fcd20
     public static let ping: UInt64 = 0xe35cdfdca59ce5ab
-    public static let serverInfo: UInt64 = 0xeb12ce628c4e46ae
 }
 
 // MARK: - Vfs Types
@@ -140,18 +139,6 @@ public struct SetAttributesParams: Codable, Sendable {
     }
 }
 
-public struct ServerInfo: Codable, Sendable {
-    public var pid: UInt32
-    public var processName: String
-    public var commandLine: [String]
-
-    public init(pid: UInt32, processName: String, commandLine: [String]) {
-        self.pid = pid
-        self.processName = processName
-        self.commandLine = commandLine
-    }
-}
-
 // MARK: - Vfs Client
 
 ///  The VFS service trait - defines the RPC interface between client and server.
@@ -177,10 +164,6 @@ public protocol VfsCaller {
     func setAttributes(itemId: UInt64, params: SetAttributesParams) async throws -> VfsResult
     ///  Ping for connectivity check.
     func ping() async throws -> String
-    ///  Get information about the server process.
-    ///  The extension calls this after connecting to learn who it's talking to
-    ///  and to monitor the server's lifetime.
-    func serverInfo() async throws -> ServerInfo
 }
 
 public final class VfsClient: VfsCaller {
@@ -381,18 +364,6 @@ public final class VfsClient: VfsCaller {
         let result = try decodeString(from: response, offset: &cursor)
         return result
     }
-
-    public func serverInfo() async throws -> ServerInfo {
-        let payload = Data()
-        let response = try await connection.call(methodId: 0xeb12ce628c4e46ae, payload: payload)
-        var cursor = 0
-        try decodeRpcResult(from: response, offset: &cursor)
-        let _result_pid = try decodeU32(from: response, offset: &cursor)
-        let _result_processName = try decodeString(from: response, offset: &cursor)
-        let _result_commandLine = try decodeVec(from: response, offset: &cursor, decoder: { data, off in try decodeString(from: data, offset: &off) })
-        let result = ServerInfo(pid: _result_pid, processName: _result_processName, commandLine: _result_commandLine)
-        return result
-    }
 }
 
 // MARK: - Vfs Server
@@ -420,10 +391,6 @@ public protocol VfsHandler {
     func setAttributes(itemId: UInt64, params: SetAttributesParams) async throws -> VfsResult
     ///  Ping for connectivity check.
     func ping() async throws -> String
-    ///  Get information about the server process.
-    ///  The extension calls this after connecting to learn who it's talking to
-    ///  and to monitor the server's lifetime.
-    func serverInfo() async throws -> ServerInfo
 }
 
 public final class VfsDispatcher {
@@ -455,8 +422,6 @@ public final class VfsDispatcher {
             return try await dispatchsetAttributes(payload: payload)
         case 0xe35cdfdca59ce5ab:
             return try await dispatchping(payload: payload)
-        case 0xeb12ce628c4e46ae:
-            return try await dispatchserverInfo(payload: payload)
         default:
             throw RoamError.unknownMethod
         }
@@ -581,12 +546,6 @@ public final class VfsDispatcher {
         let result = try await handler.ping()
         return Data(encodeResultOk(result, encoder: { encodeString($0) }))
     }
-
-    private func dispatchserverInfo(payload: Data) async throws -> Data {
-        // No arguments to decode
-        let result = try await handler.serverInfo()
-        return Data(encodeResultOk(result, encoder: { encodeU32($0.pid) + encodeString($0.processName) + encodeVec($0.commandLine, encoder: { encodeString($0) }) }))
-    }
 }
 
 public final class VfsStreamingDispatcher {
@@ -622,8 +581,6 @@ public final class VfsStreamingDispatcher {
             await dispatchsetAttributes(requestId: requestId, payload: payload)
         case 0xe35cdfdca59ce5ab:
             await dispatchping(requestId: requestId, payload: payload)
-        case 0xeb12ce628c4e46ae:
-            await dispatchserverInfo(requestId: requestId, payload: payload)
         default:
             taskSender(.response(requestId: requestId, payload: encodeUnknownMethodError()))
         }
@@ -794,16 +751,6 @@ public final class VfsStreamingDispatcher {
             var cursor = 0
             let result = try await handler.ping()
             taskSender(.response(requestId: requestId, payload: encodeResultOk(result, encoder: { encodeString($0) })))
-        } catch {
-            taskSender(.response(requestId: requestId, payload: encodeInvalidPayloadError()))
-        }
-    }
-
-    private func dispatchserverInfo(requestId: UInt64, payload: Data) async {
-        do {
-            var cursor = 0
-            let result = try await handler.serverInfo()
-            taskSender(.response(requestId: requestId, payload: encodeResultOk(result, encoder: { encodeU32($0.pid) + encodeString($0.processName) + encodeVec($0.commandLine, encoder: { encodeString($0) }) })))
         } catch {
             taskSender(.response(requestId: requestId, payload: encodeInvalidPayloadError()))
         }

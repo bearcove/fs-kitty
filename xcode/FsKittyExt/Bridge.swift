@@ -25,8 +25,6 @@ actor VfsConnection {
 
     private var client: VfsClient?
     private var driverTask: Task<Void, Never>?
-    private var pidMonitorTask: Task<Void, Never>?
-    private var serverPid: UInt32 = 0
     private let log = Logger(subsystem: "me.amos.fs-kitty.ext", category: "VfsConnection")
 
     func connect(address: String) async throws {
@@ -66,34 +64,9 @@ actor VfsConnection {
         }
         client = VfsClient(connection: handle)
         log.info("Connected to \(address)")
-
-        // Query server info and start monitoring
-        do {
-            let info = try await client!.serverInfo()
-            serverPid = info.pid
-            let cmdLine = info.commandLine.joined(separator: " ")
-            log.info("Server: pid=\(info.pid) process=\(info.processName) cmd=\(cmdLine)")
-
-            // Monitor the server PID — if it dies, we die too
-            let pid = info.pid
-            pidMonitorTask = Task.detached { [weak self] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                    // kill(pid, 0) checks if process exists without actually signaling it
-                    if kill(pid_t(pid), 0) != 0 {
-                        logger.error("Server process \(pid) is gone (errno=\(errno)), terminating extension")
-                        exit(0)
-                    }
-                }
-            }
-        } catch {
-            log.warning("Failed to get server info: \(error.localizedDescription) — PID monitoring disabled")
-        }
     }
 
     func disconnect() {
-        pidMonitorTask?.cancel()
-        pidMonitorTask = nil
         driverTask?.cancel()
         driverTask = nil
         client = nil

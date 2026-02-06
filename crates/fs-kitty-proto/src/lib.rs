@@ -26,7 +26,7 @@
 //! #   async fn rename(&self, _cx: &roam::session::Context, item_id: ItemId, new_parent_id: ItemId, new_name: String) -> VfsResult { todo!() }
 //! #   async fn set_attributes(&self, _cx: &roam::session::Context, item_id: ItemId, params: SetAttributesParams) -> VfsResult { todo!() }
 //! #   async fn ping(&self, _cx: &roam::session::Context) -> String { todo!() }
-//! #   async fn server_info(&self, _cx: &roam::session::Context) -> ServerInfo { todo!() }
+
 //! }
 //! ```
 //!
@@ -140,18 +140,6 @@ pub struct SetAttributesParams {
     pub modified_time: Option<u64>,
 }
 
-/// Information about the VFS server process.
-/// Returned by `server_info()` so the extension can monitor the server's lifetime.
-#[derive(Debug, Clone, facet::Facet)]
-pub struct ServerInfo {
-    /// Server process ID.
-    pub pid: u32,
-    /// Server process name (e.g., "vx-rhea").
-    pub process_name: String,
-    /// Full command line arguments.
-    pub command_line: Vec<String>,
-}
-
 /// The VFS service trait - defines the RPC interface between client and server.
 #[allow(async_fn_in_trait)]
 #[roam::service]
@@ -186,11 +174,6 @@ pub trait Vfs {
 
     /// Ping for connectivity check.
     async fn ping(&self) -> String;
-
-    /// Get information about the server process.
-    /// The extension calls this after connecting to learn who it's talking to
-    /// and to monitor the server's lifetime.
-    async fn server_info(&self) -> ServerInfo;
 }
 
 /// Common errno-like error codes
