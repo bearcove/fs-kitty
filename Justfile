@@ -23,6 +23,14 @@ xcode-build: xcode-gen
         SYMROOT="$(pwd)/build"
     @echo "FsKitty.app is at build/Release/FsKitty.app"
 
+xcode-install:
+    just xcode-build
+    test -d build/Release/FsKitty.app
+    rm -rf /Applications/FsKitty.app
+    ditto build/Release/FsKitty.app /Applications/FsKitty.app
+    @echo "Installed /Applications/FsKitty.app"
+    @echo "If needed: open /Applications/FsKitty.app"
+
 # Clean build artifacts
 clean:
     cargo clean
