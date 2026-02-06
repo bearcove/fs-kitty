@@ -219,6 +219,24 @@ umount ~/.fs-kitty/mnt
 
 The URL format is `fskitty://host:port` (port defaults to 10001 if omitted).
 
+### Helper Mount Supervisor
+
+The app now bundles a signed helper executable at:
+
+```bash
+/Applications/FsKitty.app/Contents/Helpers/fskittymount
+```
+
+It mounts via `mount(2)` and watches its parent process. When the parent exits, it attempts unmount via Disk Arbitration first, then falls back to `unmount(2)`.
+
+Example:
+
+```bash
+/Applications/FsKitty.app/Contents/Helpers/fskittymount \
+  --port 10001 \
+  --mount-point /tmp/vx-debug/fskitty/rhea
+```
+
 ### Watching Logs
 
 ```bash

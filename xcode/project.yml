@@ -41,6 +41,31 @@ targets:
       - target: FsKittyExt
         embed: true
         codeSign: true
+      - target: FsKittyMount
+    postBuildScripts:
+      - name: Embed fskittymount
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/fskittymount
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)/Contents/Helpers/fskittymount
+        script: |
+          set -euo pipefail
+          HELPER_SRC="${BUILT_PRODUCTS_DIR}/fskittymount"
+          HELPER_DST_DIR="${TARGET_BUILD_DIR}/${FULL_PRODUCT_NAME}/Contents/Helpers"
+          HELPER_DST="${HELPER_DST_DIR}/fskittymount"
+
+          if [ ! -f "${HELPER_SRC}" ]; then
+            echo "fskittymount binary not found at ${HELPER_SRC}"
+            exit 1
+          fi
+
+          mkdir -p "${HELPER_DST_DIR}"
+          ditto "${HELPER_SRC}" "${HELPER_DST}"
+          chmod +x "${HELPER_DST}"
+
+          if [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
+            codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --timestamp=none "${HELPER_DST}"
+          fi
 
   FsKittyExt:
     type: extensionkit-extension
@@ -66,3 +91,15 @@ targets:
     dependencies:
       - package: roam
         product: RoamRuntime
+
+  FsKittyMount:
+    type: tool
+    platform: macOS
+    sources:
+      - path: FsKittyMount
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.amos.fs-kitty.mount
+        PRODUCT_NAME: fskittymount
+        CODE_SIGN_STYLE: Automatic
+        SKIP_INSTALL: true
