@@ -1,5 +1,4 @@
 import Darwin
-import DiskArbitration
 import Foundation
 import os
 
@@ -80,7 +79,8 @@ struct Config {
 
 enum MountError: Error, CustomStringConvertible {
     case invalidArgument(String)
-    case mountFailed(errno: Int32)
+    case mountLaunchFailed(String)
+    case mountCommandFailed(exitCode: Int32, stdout: String, stderr: String)
     case unmountFailed(String)
     case usage
 
@@ -88,8 +88,11 @@ enum MountError: Error, CustomStringConvertible {
         switch self {
         case .invalidArgument(let message):
             return message
-        case .mountFailed(let code):
-            return "mount failed: errno=\(code) (\(String(cString: strerror(code))))"
+        case .mountLaunchFailed(let message):
+            return "mount failed to launch: \(message)"
+        case .mountCommandFailed(let exitCode, let stdout, let stderr):
+            return
+                "mount failed: exit=\(exitCode) stdout=\(stdout) stderr=\(stderr)"
         case .unmountFailed(let message):
             return "unmount failed: \(message)"
         case .usage:
@@ -175,16 +178,35 @@ final class MountLifecycle {
     }
 
     private func mount() throws {
-        let result = config.source.withCString { sourcePtr in
-            config.mountPoint.withCString { targetPtr in
-                config.fsType.withCString { fsTypePtr in
-                    Darwin.mount(
-                        fsTypePtr, targetPtr, 0, UnsafeMutableRawPointer(mutating: sourcePtr))
-                }
-            }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/sbin/mount")
+        process.arguments = ["-t", config.fsType, config.source, config.mountPoint]
+
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
+
+        do {
+            try process.run()
+        } catch {
+            throw MountError.mountLaunchFailed(String(describing: error))
         }
-        guard result == 0 else {
-            throw MountError.mountFailed(errno: errno)
+
+        process.waitUntilExit()
+
+        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        let stdout =
+            String(data: stdoutData, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let stderr =
+            String(data: stderrData, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard process.terminationStatus == 0 else {
+            throw MountError.mountCommandFailed(
+                exitCode: process.terminationStatus, stdout: stdout, stderr: stderr)
         }
     }
 
@@ -228,61 +250,10 @@ final class MountLifecycle {
     }
 
     private func unmount() throws {
-        if try unmountWithDiskArbitration() {
-            return
-        }
         if Darwin.unmount(config.mountPoint, MNT_FORCE) == 0 {
             return
         }
         throw MountError.unmountFailed("errno=\(errno) (\(String(cString: strerror(errno))))")
-    }
-
-    private func unmountWithDiskArbitration() throws -> Bool {
-        guard let session = DASessionCreate(kCFAllocatorDefault) else {
-            return false
-        }
-        DASessionSetDispatchQueue(session, queue)
-        defer { DASessionSetDispatchQueue(session, nil) }
-
-        let url = URL(fileURLWithPath: config.mountPoint) as CFURL
-        guard let disk = DADiskCreateFromVolumePath(kCFAllocatorDefault, session, url) else {
-            return false
-        }
-
-        let callbackContext = CallbackContext(semaphore: DispatchSemaphore(value: 0))
-        let context = Unmanaged.passRetained(callbackContext)
-
-        DADiskUnmount(
-            disk,
-            DADiskUnmountOptions(kDADiskUnmountOptionForce),
-            { _, dissenter, context in
-                let holder = Unmanaged<CallbackContext>.fromOpaque(context!).takeRetainedValue()
-                if let dissenter {
-                    let status = DADissenterGetStatus(dissenter)
-                    holder.error = "DA dissenter status=\(status)"
-                }
-                holder.semaphore.signal()
-            },
-            context.toOpaque()
-        )
-
-        let waitResult = callbackContext.semaphore.wait(timeout: .now() + .seconds(5))
-        if waitResult == .timedOut {
-            throw MountError.unmountFailed("DiskArbitration unmount timed out")
-        }
-        if let message = callbackContext.error {
-            throw MountError.unmountFailed(message)
-        }
-        return true
-    }
-}
-
-final class CallbackContext {
-    let semaphore: DispatchSemaphore
-    var error: String?
-
-    init(semaphore: DispatchSemaphore) {
-        self.semaphore = semaphore
     }
 }
 
