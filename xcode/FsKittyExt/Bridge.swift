@@ -88,10 +88,8 @@ actor VfsConnection {
             log, event: "vfs.connect.ready", details: "address=\(address)")
     }
 
-    func disconnect() {
-        Task {
-            await LifecycleTrace.shared.mark(log, event: "vfs.disconnect")
-        }
+    func disconnect() async {
+        await LifecycleTrace.shared.mark(log, event: "vfs.disconnect")
         disconnectRequested = true
         driverTask?.cancel()
         driverTask = nil
@@ -100,23 +98,21 @@ actor VfsConnection {
 
     func getClient() throws -> VfsClient {
         guard let client = client else {
-            throw NSError(
-                domain: "VFS", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected"])
+            throw fs_errorForPOSIXError(POSIXError.ENOTCONN.rawValue)
         }
         return client
     }
 
-    private func handleDriverExit() {
+    private func handleDriverExit() async {
         if disconnectRequested {
             log.info("VFS connection closed during normal unload")
-            Task {
-                await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.normal")
-            }
+            await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.normal")
         } else {
+            // Backend vanished unexpectedly. FSKit owns unload sequencing, so we only
+            // report container state and let daemon-driven callbacks perform teardown.
             log.error("Connection to VFS server lost; waiting for FSKit to unload/deactivate")
-            Task {
-                await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.unexpected")
-            }
+            await LifecycleTrace.shared.mark(log, event: "vfs.driver.exit.unexpected")
+            await Bridge.shared.handleUnexpectedPeerDisconnect()
         }
         client = nil
         driverTask = nil
@@ -145,6 +141,17 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
     private override init() {
         log.info("Bridge initialized")
         super.init()
+    }
+
+    func handleUnexpectedPeerDisconnect() async {
+        await LifecycleTrace.shared.mark(
+            log, event: "bridge.peerDisconnect.begin")
+        // FSFileSystemBase docs: device termination transitions to notReady.
+        // We use ENOTCONN so subsequent operations surface "backend disconnected".
+        containerStatus = .notReady(
+            status: NSError(domain: NSPOSIXErrorDomain, code: Int(POSIXError.ENOTCONN.rawValue)))
+        await LifecycleTrace.shared.mark(
+            log, event: "bridge.peerDisconnect.done")
     }
 
     /// Called by FSKit to check if we can handle this resource
@@ -240,6 +247,8 @@ final class Bridge: FSUnaryFileSystem, FSUnaryFileSystemOperations, @unchecked S
                 self.log, event: "bridge.unloadResource.begin",
                 details: self.describe(resource: resource))
             await VfsConnection.shared.disconnect()
+            // FSUnaryFileSystem unload callback is where we finish the transition back
+            // to notReady for this unary container/resource pair.
             self.containerStatus = .notReady(
                 status: NSError(
                     domain: NSPOSIXErrorDomain, code: Int(POSIXError.ENOTCONN.rawValue)))

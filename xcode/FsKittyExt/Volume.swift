@@ -44,8 +44,8 @@ final class Volume: FSVolume {
     private func vfsCall<T: Sendable>(
         _ operation: String, _ body: @escaping @Sendable (VfsClient) async throws -> T
     ) async throws -> T {
-        let vfsClient = try await VfsConnection.shared.getClient()
         do {
+            let vfsClient = try await VfsConnection.shared.getClient()
             return try await withThrowingTaskGroup(of: T.self) { group in
                 group.addTask { @Sendable in
                     try await body(vfsClient)
@@ -59,6 +59,14 @@ final class Volume: FSVolume {
                 return result
             }
         } catch {
+            if let nsError = error as NSError?,
+                nsError.domain == NSPOSIXErrorDomain,
+                nsError.code == Int(POSIXError.ENOTCONN.rawValue)
+            {
+                // Preserve ENOTCONN so callers can distinguish disconnect from generic I/O.
+                log.error("\(operation): backend disconnected")
+                throw fs_errorForPOSIXError(POSIXError.ENOTCONN.rawValue)
+            }
             log.error("\(operation): backend call failed: \(error.localizedDescription)")
             throw fs_errorForPOSIXError(POSIXError.EIO.rawValue)
         }
@@ -103,6 +111,7 @@ extension Volume: FSVolume.Operations {
     func unmount() async {
         log.debug("unmount")
         await LifecycleTrace.shared.mark(log, event: "volume.unmount.begin")
+        // FSVolume docs: unmount should "clear and flush all cached state".
         items.removeAll()
         Bridge.shared.containerStatus = .ready
         await LifecycleTrace.shared.mark(log, event: "volume.unmount.done")
@@ -151,6 +160,7 @@ extension Volume: FSVolume.Operations {
         log.debug("deactivate")
         await LifecycleTrace.shared.mark(
             log, event: "volume.deactivate.begin", details: "options=\(options.rawValue)")
+        // FSVolume docs: deactivate "tears down" the volume instance and avoids I/O.
         items.removeAll()
         Bridge.shared.containerStatus = .ready
         await LifecycleTrace.shared.mark(log, event: "volume.deactivate.done")
